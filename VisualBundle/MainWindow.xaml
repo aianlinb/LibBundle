@@ -1,7 +1,7 @@
 ﻿<Window x:Class="VisualBundle.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="450" Width="750" Loaded="OnLoaded">
+        Title="VisualBundle" Height="450" Width="750" Loaded="OnLoaded">
     <Grid>
         <TreeView x:Name="View1" TreeViewItem.Expanded="OnTreeViewItemExpanded" SelectedItemChanged="OnTreeView1SelectedChanged" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="250" Background="White"/>
         <TextBlock HorizontalAlignment="Left" TextWrapping="Wrap" Text="Offset:" VerticalAlignment="Top" Margin="260,10,0,0"/>
