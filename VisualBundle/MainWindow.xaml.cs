@@ -38,28 +38,35 @@ namespace VisualBundle
                 Close();
                 return;
             }
-            var ofd = new OpenFileDialog
-            {
-                DefaultExt = "bin",
-                FileName = "_.index.bin",
-                Filter = "GGG Bundle index|_.index.bin"
-            };
-            S:
-            if (ofd.ShowDialog() == true)
-            {
-                if (ofd.SafeFileName != "_.index.bin")
-                {
-                    MessageBox.Show("You must select _.index.bin!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    goto S;
-                }
-            }
+            string indexPath;
+            if (Environment.GetCommandLineArgs().Length > 1 && Path.GetFileName(Environment.GetCommandLineArgs()[1]) == "_.index.bin")
+                indexPath = Environment.GetCommandLineArgs()[1];
             else
             {
-                Close();
-                return;
+                var ofd = new OpenFileDialog
+                {
+                    DefaultExt = "bin",
+                    FileName = "_.index.bin",
+                    Filter = "GGG Bundle index|_.index.bin"
+                };
+            S:
+                if (ofd.ShowDialog() == true)
+                {
+                    if (ofd.SafeFileName != "_.index.bin")
+                    {
+                        MessageBox.Show("You must select _.index.bin!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        goto S;
+                    }
+                    indexPath = ofd.FileName;
+                }
+                else
+                {
+                    Close();
+                    return;
+                }
             }
-
-            Environment.CurrentDirectory = Path.GetDirectoryName(ofd.FileName);
+            
+            Environment.CurrentDirectory = Path.GetDirectoryName(indexPath);
             var Tree = new Dictionary<string, TreeViewItem>();
             ic = new IndexContainer("_.index.bin");
             foreach (var b in ic.Bundles)
