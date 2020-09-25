@@ -22,6 +22,20 @@ namespace VisualBundle
         public MainWindow()
         {
             InitializeComponent();
+            Application.Current.DispatcherUnhandledException += OnUnhandledException;
+        }
+
+        public void OnUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        {
+            var ew = new ErrorWindow();
+            var t = new System.Threading.Thread(new System.Threading.ParameterizedThreadStart(ew.ShowError))
+            {
+                CurrentUICulture = new System.Globalization.CultureInfo("en-US")
+            };
+            t.Start(e.Exception);
+            e.Handled = true;
+            if (ew.ShowDialog() != true)
+                Close();
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -109,7 +123,7 @@ namespace VisualBundle
                 noView.Text = br.bundleIndex.ToString();
                 var Tree = new Dictionary<string, TreeViewItem>();
                 foreach (var f in br.Files)
-                    BuildTree(Tree, ic.Hashes[f.Hash], f);
+                    BuildTree(Tree, ic.Hashes.ContainsKey(f.Hash) ? ic.Hashes[f.Hash] : null, f);
                 View2.Items.Clear();
                 foreach (var t in Tree.Values)
                     View2.Items.Add(t);
@@ -158,6 +172,8 @@ namespace VisualBundle
 
         public void BuildTree(Dictionary<string, TreeViewItem> tree, string path, object file)
         {
+            if (path == null)
+                return;
             var paths = path.Split('/');
             TreeViewItem parent = null;
             for (int i = 0; i < paths.Length; i++)
