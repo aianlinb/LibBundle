@@ -264,7 +264,7 @@ namespace VisualBundle
                 }
                 else // is file
                 {
-                    File.WriteAllBytes(path + "\\" + fi.Path, fr.Read());
+                    File.WriteAllBytes(path + "\\" + fi.Name, fr.Read());
                     count++;
                 }
             }
@@ -318,14 +318,20 @@ namespace VisualBundle
             var br = tvi.Record as BundleRecord;
             if (br != null) //Selected Bundle File
             {
-                var fbd = new System.Windows.Forms.FolderBrowserDialog();
-                if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                var fbd = new OpenFileDialog() {
+                    ValidateNames = false,
+                    CheckFileExists = false,
+                    CheckPathExists = true,
+                    FileName = "(In Bundle2 Folder)"
+                };
+                if (fbd.ShowDialog() == true)
                 {
-                    var fs = Directory.GetFiles(fbd.SelectedPath, "*", SearchOption.AllDirectories);
+                    var Bundle2_path = Path.GetDirectoryName(fbd.FileName);
+                    var fs = Directory.GetFiles(Bundle2_path, "*", SearchOption.AllDirectories);
                     var paths = ic.Hashes.Values;
                     foreach (var f in fs)
                     {
-                        var path = f.Remove(0, fbd.SelectedPath.Length + 1).Replace("\\", "/");
+                        var path = f.Remove(0, Bundle2_path.Length + 1).Replace("\\", "/");
                         if (!paths.Contains(path))
                         {
                             MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error");
@@ -334,7 +340,7 @@ namespace VisualBundle
                     }
                     foreach (var f in fs)
                     {
-                        var path = f.Remove(0, fbd.SelectedPath.Length + 1).Replace("\\", "/");
+                        var path = f.Remove(0, Bundle2_path.Length + 1).Replace("\\", "/");
                         var fr = ic.FindFiles[IndexContainer.FNV1a64Hash(path)];
                         fr.Write(File.ReadAllBytes(f));
                         fr.Move(br);
