@@ -29,8 +29,9 @@
         <Button x:Name="ButtonReplace" Content="Replace" IsEnabled="False" HorizontalAlignment="Right" Margin="0,210,25,0" VerticalAlignment="Top" Width="75" Click="OnButtonReplaceClick"/>
         <Button x:Name="ButtonMove" Content="MoveTo" IsEnabled="False" HorizontalAlignment="Right" Margin="0,240,25,0" VerticalAlignment="Top" Width="75" Click="OnButtonMoveClick"/>
         <Button x:Name="ButtonAdd" Content="AddFiles" IsEnabled="False" HorizontalAlignment="Right" Margin="0,270,25,0" VerticalAlignment="Top" Width="75" Click="OnButtonAddClick"/>
-        <Button x:Name="ButtonOpen" Content="Open" IsEnabled="False" HorizontalAlignment="Right" Margin="0,300,25,0" VerticalAlignment="Top" Width="75" Click="OnButtonOpenClick"/>
-        <Button x:Name="ButtonSave" Content="Save" IsEnabled="False" HorizontalAlignment="Right" Margin="0,330,25,0" VerticalAlignment="Top" Width="75" Click="OnButtonSaveClick"/>
+        <Button x:Name="ButtonReplaceAll" Content="ReplaceAll" IsEnabled="False" HorizontalAlignment="Right" Margin="0,300,25,0" VerticalAlignment="Top" Width="75" Click="ButtonReplaceAllClick"/>
+        <Button x:Name="ButtonOpen" Content="Open" IsEnabled="False" HorizontalAlignment="Right" Margin="0,330,25,0" VerticalAlignment="Top" Width="75" Click="OnButtonOpenClick"/>
+        <Button x:Name="ButtonSave" Content="Save" IsEnabled="False" HorizontalAlignment="Right" Margin="0,360,25,0" VerticalAlignment="Top" Width="75" Click="OnButtonSaveClick"/>
         <TextBlock x:Name="MessageLabel" HorizontalAlignment="Right" TextWrapping="Wrap" Text="" Foreground="Red" VerticalAlignment="Bottom" Margin="0,0,10,30"/>
         <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="Copyright © 2020 aianlinb." VerticalAlignment="Bottom" Margin="0,0,10,5"/>
     </Grid>

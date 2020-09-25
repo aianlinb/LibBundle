@@ -19,7 +19,7 @@ namespace VisualBundle
         private FileRecord moveF;
         private ItemModel moveD;
         private HashSet<BundleRecord> changed = new HashSet<BundleRecord>();
-       
+
         public MainWindow()
         {
             InitializeComponent();
@@ -89,6 +89,7 @@ namespace VisualBundle
                     BuildTree(root, b.Name, b);
             foreach (var tvi in root.ChildItems)
                 View1.Items.Add(tvi);
+            ButtonReplaceAll.IsEnabled = true;
         }
 
         private void OnTreeViewItemExpanded(object sender, RoutedEventArgs e)
@@ -145,7 +146,7 @@ namespace VisualBundle
 
         private void OnTreeView2SelectedChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            
+
             var tvi = GetSelectedFile();
             if (tvi == null) //No Selected
             {
@@ -173,7 +174,7 @@ namespace VisualBundle
                 ButtonMove.IsEnabled = true;
                 ButtonOpen.IsEnabled = true;
             }
-            
+
         }
 
         public StackPanel TreeItem(string path, ImageSource icon)
@@ -318,7 +319,8 @@ namespace VisualBundle
             var br = tvi.Record as BundleRecord;
             if (br != null) //Selected Bundle File
             {
-                var fbd = new OpenFileDialog() {
+                var fbd = new OpenFileDialog()
+                {
                     ValidateNames = false,
                     CheckFileExists = false,
                     CheckPathExists = true,
@@ -436,6 +438,85 @@ namespace VisualBundle
             if (ButtonSave.IsEnabled)
                 if (MessageBox.Show("There are unsaved changes" + Environment.NewLine + "Are you sure you want to leave?", "Closing", MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.Cancel)
                     e.Cancel = true;
+        }
+
+        private void ButtonReplaceAllClick(object sender, RoutedEventArgs e)
+        {
+            var fbd = OpenBundle2Dialog();
+            if (fbd.ShowDialog() == true)
+            {
+                if (MessageBox.Show(
+                    "This function will replace all files to every loaded bundles" + Environment.NewLine
+                    + "Are you sure you want to do this?",
+                    "Replace all files to every loaded bundles",
+                    MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK)
+                {
+                    var Bundle2_path = Path.GetDirectoryName(fbd.FileName);
+                    var fs = Directory.GetFiles(Bundle2_path, "*", SearchOption.AllDirectories);
+                    var paths = ic.Hashes.Values;
+                    var loadedbundles = GetLoadedBundleRecordAll();
+                    var count = 0;
+                    var size = 0;
+                    foreach (var f in fs)
+                    {
+                        var path = f.Remove(0, Bundle2_path.Length + 1).Replace("\\", "/");
+                        if (paths.Contains(path))
+                        {
+                            var fr = ic.FindFiles[IndexContainer.FNV1a64Hash(path)];
+                            var br = fr.bundleRecord;
+                            if (loadedbundles.Contains(br))
+                            {
+                                fr.Write(File.ReadAllBytes(f));
+                                changed.Add(br);
+                                ++count;
+                                size += fr.Size;
+                            }
+                        }
+                    }
+                    ButtonSave.IsEnabled = true;
+                    MessageBox.Show("Imported " + count.ToString() + " Files." + Environment.NewLine
+                        + "Total " + size.ToString() + " Bytes.", "Done");
+                }
+            }
+        }
+        private HashSet<BundleRecord> GetLoadedBundleRecordAll()
+        {
+            var bundles = new HashSet<BundleRecord>();
+            var queue = new Queue<ItemModel>();
+            foreach (ItemModel item in View1.Items)
+            {
+                queue.Enqueue(item);
+            }
+            while (queue.Count > 0)
+            {
+                ItemModel item = queue.Dequeue();
+                if (item as FolderModel != null)
+                {
+                    foreach (var childitem in item.ChildItems)
+                    {
+                        queue.Enqueue(childitem);
+                    }
+                    continue;
+                }
+                if (item.Record as BundleRecord != null)
+                {
+                    bundles.Add(item.Record as BundleRecord);
+                    continue;
+                }
+            }
+            return bundles;
+
+        }
+        private Microsoft.Win32.OpenFileDialog OpenBundle2Dialog()
+        {
+            var ofd = new OpenFileDialog()
+            {
+                ValidateNames = false,
+                CheckFileExists = false,
+                CheckPathExists = true,
+                FileName = "(In Bundle2 Folder)"
+            };
+            return ofd;
         }
     }
 }
