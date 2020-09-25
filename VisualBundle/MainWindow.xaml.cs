@@ -9,6 +9,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace VisualBundle
 {
@@ -16,9 +17,9 @@ namespace VisualBundle
     {
         public IndexContainer ic;
         private FileRecord moveF;
-        private TreeViewItem moveD;
+        private ItemModel moveD;
         private HashSet<BundleRecord> changed = new HashSet<BundleRecord>();
-
+       
         public MainWindow()
         {
             InitializeComponent();
@@ -79,38 +80,49 @@ namespace VisualBundle
                     return;
                 }
             }
-            
+
             Environment.CurrentDirectory = Path.GetDirectoryName(indexPath);
-            var Tree = new Dictionary<string, TreeViewItem>();
+            var root = new FolderModel();
             ic = new IndexContainer("_.index.bin");
             foreach (var b in ic.Bundles)
                 if (File.Exists(b.Name))
-                    BuildTree(Tree, b.Name, b);
-            foreach (var tvi in Tree.Values)
+                    BuildTree(root, b.Name, b);
+            foreach (var tvi in root.ChildItems)
                 View1.Items.Add(tvi);
         }
 
         private void OnTreeViewItemExpanded(object sender, RoutedEventArgs e)
         {
-            var tvi = e.OriginalSource as TreeViewItem;
+            // handle auto now
+            // no need anymore
+            /*
+            var tvi = e.OriginalSource as ItemModel;
             if (tvi.Items != null)
             {
                 tvi.Items.Clear();
                 foreach(var c in ((Dictionary<string, TreeViewItem>)tvi.Tag).Values)
                     tvi.Items.Add(c);
             }
+            */
         }
-
+        private ItemModel GetSelectedBundle()
+        {
+            return (ItemModel)View1.SelectedItem;
+        }
+        private ItemModel GetSelectedFile()
+        {
+            return (ItemModel)View2.SelectedItem;
+        }
         private void OnTreeView1SelectedChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            var tvi = (TreeViewItem)e.NewValue;
+            var tvi = GetSelectedBundle();
             if (tvi == null) //No Selected
             {
                 ButtonAdd.IsEnabled = false;
                 return;
             }
-            var br = tvi.Tag as BundleRecord;
-            if(br == null) //Selected Directory
+            var br = tvi.Record as BundleRecord;
+            if (br == null) //Selected Directory
                 ButtonAdd.IsEnabled = false;
             else //Selected Bundle File
             {
@@ -121,11 +133,11 @@ namespace VisualBundle
                 offsetView.Text = br.indexOffset.ToString();
                 sizeView.Text = br.Size.ToString();
                 noView.Text = br.bundleIndex.ToString();
-                var Tree = new Dictionary<string, TreeViewItem>();
+                var root = new FolderModel();
                 foreach (var f in br.Files)
-                    BuildTree(Tree, ic.Hashes.ContainsKey(f.Hash) ? ic.Hashes[f.Hash] : null, f);
+                    BuildTree(root, ic.Hashes.ContainsKey(f.Hash) ? ic.Hashes[f.Hash] : null, f);
                 View2.Items.Clear();
-                foreach (var t in Tree.Values)
+                foreach (var t in root.ChildItems)
                     View2.Items.Add(t);
                 ButtonAdd.IsEnabled = true;
             }
@@ -133,7 +145,8 @@ namespace VisualBundle
 
         private void OnTreeView2SelectedChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-            var tvi = (TreeViewItem)e.NewValue;
+            
+            var tvi = GetSelectedFile();
             if (tvi == null) //No Selected
             {
                 ButtonExport.IsEnabled = false;
@@ -142,7 +155,7 @@ namespace VisualBundle
                 ButtonOpen.IsEnabled = false;
                 return;
             }
-            var fr = tvi.Tag as FileRecord;
+            var fr = tvi.Record as FileRecord;
             if (fr == null) //Selected Directory
             {
                 ButtonExport.IsEnabled = true;
@@ -160,70 +173,55 @@ namespace VisualBundle
                 ButtonMove.IsEnabled = true;
                 ButtonOpen.IsEnabled = true;
             }
+            
         }
 
         public StackPanel TreeItem(string path, ImageSource icon)
         {
             var sp = new StackPanel { Orientation = Orientation.Horizontal };
-            sp.Children.Add(new Image {Source=icon, Width = 20, Height = 20 });
-            sp.Children.Add(new TextBlock {Text=path, FontSize=16});
+            sp.Children.Add(new Image { Source = icon, Width = 20, Height = 20 });
+            sp.Children.Add(new TextBlock { Text = path, FontSize = 16 });
             return sp;
         }
 
-        public void BuildTree(Dictionary<string, TreeViewItem> tree, string path, object file)
+        public void BuildTree(ItemModel root, string path, object file)
         {
-            if (path == null)
-                return;
+            if (path == null) { return; }
+
             var paths = path.Split('/');
-            TreeViewItem parent = null;
+            ItemModel parent = root;
+
             for (int i = 0; i < paths.Length; i++)
             {
-                if (parent == null)
-                {
-                    if (tree.ContainsKey(paths[i]))
-                        parent = tree[paths[i]];
+                var name = paths[i];
+                var isFile = (i + 1 == paths.Length);
+                var next = parent.GetChildItem(name);
+
+                if (next is null)
+                {//no exist node
+                    // build new node
+                    if (isFile)
+                    {
+                        next = new FileModel(name);
+                        next.Record = file;
+                    }
                     else
                     {
-                        var isFile = i + 1 == paths.Length;
-                        var tvi = new TreeViewItem { Header = TreeItem(paths[i], isFile ? Properties.Resources.file : Properties.Resources.dir) };
-                        if (isFile)
-                            tvi.Tag = file;
-                        else
-                        {
-                            tvi.Tag = new Dictionary<string, TreeViewItem>();
-                            tvi.Items.Add("Loading . . .");
-                        }
-                        parent = tree[paths[i]] = tvi;
+                        next = new FolderModel(name);
                     }
+                    parent.AddChildItem(next);
                 }
-                else
-                {
-                    var pr = (Dictionary<string, TreeViewItem>)parent.Tag;
-                    if (pr.ContainsKey(paths[i]))
-                        parent = pr[paths[i]];
-                    else
-                    {
-                        var isFile = i + 1 == paths.Length;
-                        var tvi = new TreeViewItem { Header = TreeItem(paths[i], isFile ? Properties.Resources.file : Properties.Resources.dir) };
-                        if (isFile)
-                            tvi.Tag = file;
-                        else
-                        {
-                            tvi.Tag = new Dictionary<string, TreeViewItem>();
-                            tvi.Items.Add("Loading . . .");
-                        }
-                        parent = pr[paths[i]] = tvi;
-                    }
-                }
+                parent = next;
             }
+
         }
 
         private void OnButtonExportClick(object sender, RoutedEventArgs e)
         {
-            var tvi = View2.SelectedItem as TreeViewItem;
+            var tvi = GetSelectedFile();
             if (tvi == null)
                 return;
-            var f = tvi.Tag as FileRecord;
+            var f = tvi.Record as FileRecord;
             if (f != null) //Selected File
             {
                 var ofd = new SaveFileDialog
@@ -241,32 +239,32 @@ namespace VisualBundle
             {
                 var ofd = new SaveFileDialog
                 {
-                    FileName = ((TextBlock)((StackPanel)tvi.Header).Children[1]).Text
+                    FileName = tvi.Name
                 };
                 if (ofd.ShowDialog() == true)
                 {
                     var path = Path.GetFileNameWithoutExtension(ofd.FileName);
-                    var fis = tvi.Tag as Dictionary<string, TreeViewItem>;
+                    var fis = tvi.ChildItems;
                     MessageBox.Show("Exported " + ExportDir(fis, path).ToString() + " Files", "Done");
                 }
             }
         }
 
-        private int ExportDir(Dictionary<string, TreeViewItem> fis, string path)
+        private int ExportDir(ICollection<ItemModel> fis, string path)
         {
             int count = 0;
             Directory.CreateDirectory(path);
             foreach (var fi in fis)
             {
-                var fr = fi.Value.Tag as FileRecord;
+                var fr = fi.Record as FileRecord;
                 if (fr == null) // is directory
                 {
-                    Directory.CreateDirectory(path + "\\" + fi.Key);
-                    count += ExportDir((Dictionary<string, TreeViewItem>)fi.Value.Tag, path + "\\" + fi.Key);
+                    Directory.CreateDirectory(path + "\\" + fi.Path);
+                    count += ExportDir(fi.ChildItems, path + "\\" + fi.Name);
                 }
                 else // is file
                 {
-                    File.WriteAllBytes(path + "\\" + fi.Key, fr.Read());
+                    File.WriteAllBytes(path + "\\" + fi.Path, fr.Read());
                     count++;
                 }
             }
@@ -275,10 +273,10 @@ namespace VisualBundle
 
         private void OnButtonReplaceClick(object sender, RoutedEventArgs e)
         {
-            var tvi = View2.SelectedItem as TreeViewItem;
+            var tvi = GetSelectedFile();
             if (tvi == null)
                 return;
-            var f = tvi.Tag as FileRecord;
+            var f = tvi.Record as FileRecord;
             if (f != null) //Selected File
             {
                 var ofd = new OpenFileDialog { FileName = Path.GetFileName(ic.Hashes[f.Hash]) };
@@ -294,10 +292,10 @@ namespace VisualBundle
 
         private void OnButtonMoveClick(object sender, RoutedEventArgs e)
         {
-            var tvi = View2.SelectedItem as TreeViewItem;
+            var tvi = GetSelectedFile();
             if (tvi == null)
                 return;
-            var f = tvi.Tag as FileRecord;
+            var f = tvi.Record as FileRecord;
             if (f != null) //Selected File
             {
                 moveF = f;
@@ -314,10 +312,10 @@ namespace VisualBundle
 
         private void OnButtonAddClick(object sender, RoutedEventArgs e)
         {
-            var tvi = View1.SelectedItem as TreeViewItem;
+            var tvi = GetSelectedBundle();
             if (tvi == null)
                 return;
-            var br = tvi.Tag as BundleRecord;
+            var br = tvi.Record as BundleRecord;
             if (br != null) //Selected Bundle File
             {
                 var fbd = new System.Windows.Forms.FolderBrowserDialog();
@@ -327,7 +325,7 @@ namespace VisualBundle
                     var paths = ic.Hashes.Values;
                     foreach (var f in fs)
                     {
-                        var path = f.Remove(0, fbd.SelectedPath.Length + 1).Replace("\\","/");
+                        var path = f.Remove(0, fbd.SelectedPath.Length + 1).Replace("\\", "/");
                         if (!paths.Contains(path))
                         {
                             MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error");
@@ -350,7 +348,7 @@ namespace VisualBundle
 
         private void MoveF(BundleRecord br)
         {
-            if(MessageBox.Show("Are you sure you want to move " + ic.Hashes[moveF.Hash] + " into " + br.Name + "?", "Confirm", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
+            if (MessageBox.Show("Are you sure you want to move " + ic.Hashes[moveF.Hash] + " into " + br.Name + "?", "Confirm", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
             {
                 changed.Add(moveF.bundleRecord);
                 changed.Add(br);
@@ -365,9 +363,9 @@ namespace VisualBundle
 
         private void MoveD(BundleRecord br)
         {
-            if (MessageBox.Show("Are you sure you want to move directory " + ((TextBlock)((StackPanel)moveD.Header).Children[1]).Text + " into " + br.Name + "?", "Confirm", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
+            if (MessageBox.Show("Are you sure you want to move directory " + moveD.Name + " into " + br.Name + "?", "Confirm", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
             {
-                MessageBox.Show("Moved " + MoveDir(moveD.Tag as Dictionary<string, TreeViewItem>, br).ToString() + " Files", "Done");
+                MessageBox.Show("Moved " + MoveDir(moveD.ChildItems, br).ToString() + " Files", "Done");
                 changed.Add(br);
                 ButtonSave.IsEnabled = true;
             }
@@ -376,14 +374,14 @@ namespace VisualBundle
             View1.Background = Brushes.White;
         }
 
-        private int MoveDir(Dictionary<string, TreeViewItem> fis, BundleRecord br)
+        private int MoveDir(ICollection<ItemModel> fis, BundleRecord br)
         {
             int count = 0;
             foreach (var fi in fis)
             {
-                var fr = fi.Value.Tag as FileRecord;
+                var fr = fi.Record as FileRecord;
                 if (fr == null) // is directory
-                    count += MoveDir((Dictionary<string, TreeViewItem>)fi.Value.Tag, br);
+                    count += MoveDir(fi.ChildItems, br);
                 else // is file
                 {
                     fr.Move(br);
@@ -396,10 +394,10 @@ namespace VisualBundle
 
         private void OnButtonOpenClick(object sender, RoutedEventArgs e)
         {
-            var tvi = View2.SelectedItem as TreeViewItem;
+            var tvi = View2.SelectedItem as ItemModel;
             if (tvi == null)
                 return;
-            var f = tvi.Tag as FileRecord;
+            var f = tvi.Record as FileRecord;
             if (f != null) //Selected File
             {
                 var path = Path.GetTempPath() + Path.DirectorySeparatorChar + Path.GetFileName(ic.Hashes[f.Hash]);
@@ -413,8 +411,8 @@ namespace VisualBundle
             try
             {
                 File.Delete((sender as Process).StartInfo.FileName);
-            } 
-            catch (Exception) {}
+            }
+            catch (Exception) { }
         }
 
         private void OnButtonSaveClick(object sender, RoutedEventArgs e)
