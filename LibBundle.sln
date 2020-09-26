@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BundleExporter", "BundleExp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualBundle", "VisualBundle\VisualBundle.csproj", "{FBDFA120-5123-4A64-B378-B6C252C5D978}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileListGenerator", "FileListGenerator\FileListGenerator.csproj", "{25E83531-FD68-4483-A133-C1A40EC762D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{FBDFA120-5123-4A64-B378-B6C252C5D978}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FBDFA120-5123-4A64-B378-B6C252C5D978}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FBDFA120-5123-4A64-B378-B6C252C5D978}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25E83531-FD68-4483-A133-C1A40EC762D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25E83531-FD68-4483-A133-C1A40EC762D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25E83531-FD68-4483-A133-C1A40EC762D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25E83531-FD68-4483-A133-C1A40EC762D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
