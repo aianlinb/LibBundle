@@ -23,7 +23,10 @@ namespace VisualBundle.Properties {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
     internal class Resources {
-        
+
+        private static System.Windows.Media.Imaging.BitmapSource _file;
+        private static System.Windows.Media.Imaging.BitmapSource _dir;
+
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
@@ -65,8 +68,12 @@ namespace VisualBundle.Properties {
         /// </summary>
         internal static System.Windows.Media.Imaging.BitmapSource dir {
             get {
-                var obj = (System.Drawing.Icon)ResourceManager.GetObject("dir", resourceCulture);
-                return System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(obj.ToBitmap().GetHbitmap(), IntPtr.Zero, System.Windows.Int32Rect.Empty, System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                if (_dir == null)
+                {
+                    var obj = (System.Drawing.Icon)ResourceManager.GetObject("dir", resourceCulture);
+                    _dir = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(obj.ToBitmap().GetHbitmap(), IntPtr.Zero, System.Windows.Int32Rect.Empty, System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                }
+                return _dir;
             }
         }
         
@@ -75,8 +82,12 @@ namespace VisualBundle.Properties {
         /// </summary>
         internal static System.Windows.Media.Imaging.BitmapSource file {
             get {
-                var obj = (System.Drawing.Icon)ResourceManager.GetObject("file", resourceCulture);
-                return System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(obj.ToBitmap().GetHbitmap(), IntPtr.Zero, System.Windows.Int32Rect.Empty, System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                if (_file == null)
+                {
+                    var obj = (System.Drawing.Icon)ResourceManager.GetObject("file", resourceCulture);
+                    _file = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(obj.ToBitmap().GetHbitmap(), IntPtr.Zero, System.Windows.Int32Rect.Empty, System.Windows.Media.Imaging.BitmapSizeOptions.FromEmptyOptions());
+                }
+                return _file;
             }
         }
     }
