@@ -1,14 +1,5 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.IO;
+﻿using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Media;
 
 namespace VisualBundle
@@ -38,12 +29,12 @@ namespace VisualBundle
         }
         public void AddChildItem(ItemModel Item)
         {
-            this.ChildItems.Add(Item);
+            ChildItems.Add(Item);
             Item.Parent = this;
         }
         public ItemModel GetChildItem(string Name)
         {
-            return this.ChildItems.FirstOrDefault(ItemCollection => ItemCollection.Name == Name);
+            return ChildItems.FirstOrDefault(ItemCollection => ItemCollection.Name == Name);
         }
     }
     public class FolderModel : ItemModel
