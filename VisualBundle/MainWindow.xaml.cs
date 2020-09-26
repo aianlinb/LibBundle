@@ -7,9 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 
 namespace VisualBundle
 {
@@ -18,7 +16,7 @@ namespace VisualBundle
         public IndexContainer ic;
         private FileRecord moveF;
         private ItemModel moveD;
-        private HashSet<BundleRecord> changed = new HashSet<BundleRecord>();
+        private readonly HashSet<BundleRecord> changed = new HashSet<BundleRecord>();
 
         public MainWindow()
         {
@@ -92,20 +90,6 @@ namespace VisualBundle
             ButtonReplaceAll.IsEnabled = true;
         }
 
-        private void OnTreeViewItemExpanded(object sender, RoutedEventArgs e)
-        {
-            // handle auto now
-            // no need anymore
-            /*
-            var tvi = e.OriginalSource as ItemModel;
-            if (tvi.Items != null)
-            {
-                tvi.Items.Clear();
-                foreach(var c in ((Dictionary<string, TreeViewItem>)tvi.Tag).Values)
-                    tvi.Items.Add(c);
-            }
-            */
-        }
         private ItemModel GetSelectedBundle()
         {
             return (ItemModel)View1.SelectedItem;
@@ -177,17 +161,9 @@ namespace VisualBundle
 
         }
 
-        public StackPanel TreeItem(string path, ImageSource icon)
-        {
-            var sp = new StackPanel { Orientation = Orientation.Horizontal };
-            sp.Children.Add(new Image { Source = icon, Width = 20, Height = 20 });
-            sp.Children.Add(new TextBlock { Text = path, FontSize = 16 });
-            return sp;
-        }
-
         public void BuildTree(ItemModel root, string path, object file)
         {
-            if (path == null) { return; }
+            if (path == null) return;
 
             var paths = path.Split('/');
             ItemModel parent = root;
@@ -446,9 +422,10 @@ namespace VisualBundle
             if (fbd.ShowDialog() == true)
             {
                 if (MessageBox.Show(
-                    "This function will replace all files to every loaded bundles" + Environment.NewLine
+                    "This will replace all files to every loaded bundles." + Environment.NewLine
+                    + "And bundles which weren't loaded won't be changed." + Environment.NewLine
                     + "Are you sure you want to do this?",
-                    "Replace all files to every loaded bundles",
+                    "Replace All Confirm",
                     MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK)
                 {
                     var Bundle2_path = Path.GetDirectoryName(fbd.FileName);
@@ -507,7 +484,7 @@ namespace VisualBundle
             return bundles;
 
         }
-        private Microsoft.Win32.OpenFileDialog OpenBundle2Dialog()
+        private OpenFileDialog OpenBundle2Dialog()
         {
             var ofd = new OpenFileDialog()
             {

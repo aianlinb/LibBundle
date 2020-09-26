@@ -48,12 +48,11 @@ namespace VisualBundle
     }
     public class FolderModel : ItemModel
     {
-        private static ImageSource _icon = Properties.Resources.dir;
         override public ImageSource Icon
         {
             get
             {
-                 return _icon;
+                 return Properties.Resources.dir;
             }
         }
         public FolderModel() : base()
@@ -67,12 +66,11 @@ namespace VisualBundle
     }
     public class FileModel : ItemModel
     {
-        private static ImageSource _icon = Properties.Resources.file;
         override public ImageSource Icon
         {
             get
             {
-                return _icon;
+                return Properties.Resources.file;
             }
         }
         public FileModel()
