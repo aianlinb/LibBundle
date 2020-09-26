@@ -28,7 +28,7 @@ namespace VisualBundle
         public void OnUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
             var ew = new ErrorWindow();
-            var t = new System.Threading.Thread(new System.Threading.ParameterizedThreadStart(ew.ShowError))
+            var t = new Thread(new ParameterizedThreadStart(ew.ShowError))
             {
                 CurrentUICulture = new System.Globalization.CultureInfo("en-US")
             };
@@ -409,18 +409,30 @@ namespace VisualBundle
             ButtonSave.IsEnabled = false;
             var sw = new SavingWindow();
             var t = new Thread(new ThreadStart(() => {
-                var i = 1;
-                var text = "Saving {0} / " + (changed.Count + 1).ToString() + " bundles . . .";
-                foreach (var br in changed)
+                try
                 {
+                    var i = 1;
+                    var text = "Saving {0} / " + (changed.Count + 1).ToString() + " bundles . . .";
+                    foreach (var br in changed)
+                    {
+                        Dispatcher.Invoke(() => { sw.TextBlock1.Text = string.Format(text, i); });
+                        br.Save(br.Name);
+                        i++;
+                    }
                     Dispatcher.Invoke(() => { sw.TextBlock1.Text = string.Format(text, i); });
-                    br.Save(br.Name);
-                    i++;
+                    ic.Save("_.index.bin");
+                    sw.Closing -= sw.OnClosing;
+                    Dispatcher.Invoke(sw.Close);
+                } catch (Exception ex)
+                {
+                    var ew = new ErrorWindow();
+                    var tr = new Thread(new ParameterizedThreadStart(ew.ShowError))
+                    {
+                        CurrentUICulture = new System.Globalization.CultureInfo("en-US")
+                    };
+                    tr.Start(ex);
+                    Dispatcher.Invoke(() => { if (ew.ShowDialog() != true) Close(); });
                 }
-                Dispatcher.Invoke(() => { sw.TextBlock1.Text = string.Format(text, i); });
-                ic.Save("_.index.bin");
-                sw.Closing -= sw.OnClosing;
-                Dispatcher.Invoke(sw.Close);
             }));
             t.Start();
             sw.ShowDialog();
