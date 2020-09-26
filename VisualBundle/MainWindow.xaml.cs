@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 
@@ -94,10 +95,12 @@ namespace VisualBundle
         {
             return (ItemModel)View1.SelectedItem;
         }
+
         private ItemModel GetSelectedFile()
         {
             return (ItemModel)View2.SelectedItem;
         }
+
         private void OnTreeView1SelectedChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             var tvi = GetSelectedBundle();
@@ -334,6 +337,7 @@ namespace VisualBundle
         {
             if (MessageBox.Show("Are you sure you want to move " + ic.Hashes[moveF.Hash] + " into " + br.Name + "?", "Confirm", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
             {
+                MessageLabel.Text = "Moving . . .";
                 changed.Add(moveF.bundleRecord);
                 changed.Add(br);
                 moveF.Move(br);
@@ -349,6 +353,7 @@ namespace VisualBundle
         {
             if (MessageBox.Show("Are you sure you want to move directory " + moveD.Name + " into " + br.Name + "?", "Confirm", MessageBoxButton.OKCancel, MessageBoxImage.Question) == MessageBoxResult.OK)
             {
+                MessageLabel.Text = "Moving . . .";
                 MessageBox.Show("Moved " + MoveDir(moveD.ChildItems, br).ToString() + " Files", "Done");
                 changed.Add(br);
                 ButtonSave.IsEnabled = true;
@@ -402,9 +407,23 @@ namespace VisualBundle
         private void OnButtonSaveClick(object sender, RoutedEventArgs e)
         {
             ButtonSave.IsEnabled = false;
-            foreach (var br in changed)
-                br.Save(br.Name);
-            ic.Save("_.index.bin");
+            var sw = new SavingWindow();
+            var t = new Thread(new ThreadStart(() => {
+                var i = 1;
+                var text = "Saving {0} / " + (changed.Count + 1).ToString() + " bundles . . .";
+                foreach (var br in changed)
+                {
+                    Dispatcher.Invoke(() => { sw.TextBlock1.Text = string.Format(text, i); });
+                    br.Save(br.Name);
+                    i++;
+                }
+                Dispatcher.Invoke(() => { sw.TextBlock1.Text = string.Format(text, i); });
+                ic.Save("_.index.bin");
+                sw.Closing -= sw.OnClosing;
+                Dispatcher.Invoke(sw.Close);
+            }));
+            t.Start();
+            sw.ShowDialog();
             MessageBox.Show("Success saved!" + Environment.NewLine + changed.Count.ToString() + " bundle files changed", "Done");
             changed.Clear();
         }
@@ -456,6 +475,7 @@ namespace VisualBundle
                 }
             }
         }
+
         private HashSet<BundleRecord> GetLoadedBundleRecordAll()
         {
             var bundles = new HashSet<BundleRecord>();
@@ -484,6 +504,7 @@ namespace VisualBundle
             return bundles;
 
         }
+
         private OpenFileDialog OpenBundle2Dialog()
         {
             var ofd = new OpenFileDialog()
