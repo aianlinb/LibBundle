@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 
 namespace LibBundle
 {
@@ -144,6 +143,10 @@ namespace LibBundle
             if (dataToSave == null)
                 throw new NotSupportedException("Save() only can be called when it's implemented using a constructor with \"byte[] data\" parameters");
             this.path = path;
+            size_decompressed = uncompressed_size = dataToSave.Length;
+            entry_count = uncompressed_size / chunk_size;
+            if (uncompressed_size % chunk_size != 0) entry_count++;
+            head_size = entry_count * 4 + 48;
             var bw = new BinaryWriter(File.Create(path));
             bw.BaseStream.Seek(offset + 60 + (entry_count*4), SeekOrigin.Begin);
             data_size = 0;
