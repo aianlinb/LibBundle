@@ -39,10 +39,7 @@ namespace LibBundle
             int directoryCount = br.ReadInt32();
             Directorys = new DirectoryRecord[directoryCount];
             for (int i = 0; i < directoryCount; i++)
-            {
-                var d = new DirectoryRecord(br);
-                Directorys[i] = d;
-            }
+                Directorys[i] = new DirectoryRecord(br);
 
             var tmp = br.BaseStream.Position;
             directoryBundleData = br.ReadBytes((int)(br.BaseStream.Length - tmp));
@@ -50,14 +47,13 @@ namespace LibBundle
 
             var directoryBundle = new BundleContainer(br);
             var br2 = new BinaryReader(directoryBundle.Read(br));
-            br.Close();
             Hashes = new Dictionary<ulong, string>(Files.Length);
             foreach (var d in Directorys)
             {
                 var temp = new List<string>();
                 bool Base = false;
                 br2.BaseStream.Seek(d.Offset, SeekOrigin.Begin);
-                while (br2.BaseStream.Position - d.Offset <= d.Size - 4)
+                while (br2.BaseStream.Position - d.Offset < d.RecursiveSize)
                 {
                     int index = br2.ReadInt32();
                     if (index == 0)
@@ -74,7 +70,7 @@ namespace LibBundle
                         while ((c = br2.ReadChar()) != 0)
                             sb.Append(c);
                         var str = sb.ToString();
-                        if (index < temp.Count && index >= 0)
+                        if (index < temp.Count)
                             str = temp[index] + str;
                         if (Base)
                             temp.Add(str);
@@ -131,7 +127,7 @@ namespace LibBundle
                 bw.Write(d.Hash);
                 bw.Write(d.Offset);
                 bw.Write(d.Size);
-                bw.Write(d.Unknown);
+                bw.Write(d.RecursiveSize);
             }
             bw.Write(directoryBundleData);
             bw.Flush();

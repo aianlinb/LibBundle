@@ -6,27 +6,27 @@ namespace BundleExporter
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             if (!File.Exists("_.index.bin"))
             {
                 Console.WriteLine("File not found: _.index.bin");
-                Console.WriteLine("Click any key to exit . . .");
-                Console.ReadKey();
+                Console.WriteLine("Click enter to exit . . .");
+                Console.ReadLine();
                 return;
             }
             if (!File.Exists("LibBundle.dll"))
             {
                 Console.WriteLine("File not found: oo2core_8_win64.dll");
-                Console.WriteLine("Click any key to exit . . .");
-                Console.ReadKey();
+                Console.WriteLine("Click enter to exit . . .");
+                Console.ReadLine();
                 return;
             }
             if (!File.Exists("oo2core_8_win64.dll"))
             {
                 Console.WriteLine("File not found: oo2core_8_win64.dll");
-                Console.WriteLine("Click any key to exit . . .");
-                Console.ReadKey();
+                Console.WriteLine("Click enter to exit . . .");
+                Console.ReadLine();
                 return;
             }
 
@@ -58,8 +58,8 @@ namespace BundleExporter
                 catch (System.Collections.Generic.KeyNotFoundException) { }
             }
             Console.WriteLine(Environment.NewLine);
-            Console.WriteLine("Click any key to exit . . .");
-            Console.ReadKey();
+            Console.WriteLine("Click enter to exit . . .");
+            Console.ReadLine();
         }
     }
 }

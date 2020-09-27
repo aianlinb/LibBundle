@@ -8,7 +8,7 @@ namespace LibBundle.Records
         public ulong Hash;
         public int Offset;
         public int Size;
-        public uint Unknown;
+        public int RecursiveSize;
         public List<string> paths;
 
         public DirectoryRecord(System.IO.BinaryReader br)
@@ -17,7 +17,7 @@ namespace LibBundle.Records
             Hash = br.ReadUInt64();
             Offset = br.ReadInt32();
             Size = br.ReadInt32();
-            Unknown = br.ReadUInt32();
+            RecursiveSize = br.ReadInt32();
             paths = new List<string>();
         }
     }

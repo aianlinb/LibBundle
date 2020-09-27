@@ -130,7 +130,7 @@ namespace LibBundle
                 var b = br.ReadBytes(chunks[i]);
                 int size = (i + 1 == entry_count) ? uncompressed_size - (chunk_size * (entry_count - 1)) : chunk_size;
                 var toSave = new byte[size + 64];
-                OodleLZ_Decompress(b, b.Length, toSave, toSave.Length, 0, 0, 0, IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0, 3);
+                OodleLZ_Decompress(b, b.Length, toSave, size, 0, 0, 0, IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0, 3);
                 data.Write(toSave, 0, size);
             }
             br.Close();
