@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30503.244
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibBundle", "LibBundle\LibBundle.csproj", "{9B9CD245-6053-4F42-8256-0C4B413D82C8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BundleExporter", "BundleExpoter\BundleExporter.csproj", "{EC9F6B3B-0B47-4DF2-9272-7372312ECDAF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BundleExporter", "BundleExporter\BundleExporter.csproj", "{EC9F6B3B-0B47-4DF2-9272-7372312ECDAF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VisualBundle", "VisualBundle\VisualBundle.csproj", "{FBDFA120-5123-4A64-B378-B6C252C5D978}"
 EndProject
