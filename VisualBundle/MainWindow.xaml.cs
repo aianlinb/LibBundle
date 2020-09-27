@@ -524,7 +524,8 @@ namespace VisualBundle
                 ValidateNames = false,
                 CheckFileExists = false,
                 CheckPathExists = true,
-                FileName = "(In Bundle2 Folder)"
+                Title = "Go Into Bundles2 Folder And Click Open",
+                FileName = "(Go Into Bundles2 Folder And Click Open)"
             };
             return ofd;
         }
