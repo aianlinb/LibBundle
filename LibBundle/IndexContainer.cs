@@ -53,7 +53,7 @@ namespace LibBundle
                 var temp = new List<string>();
                 bool Base = false;
                 br2.BaseStream.Seek(d.Offset, SeekOrigin.Begin);
-                while (br2.BaseStream.Position - d.Offset <= d.RecursiveSize - 4)
+                while (br2.BaseStream.Position - d.Offset <= d.Size - 4)
                 {
                     int index = br2.ReadInt32();
                     if (index == 0)
