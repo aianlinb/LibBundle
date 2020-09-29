@@ -246,7 +246,7 @@ namespace VisualBundle
                 }
                 else // is file
                 {
-                    File.WriteAllBytes(path + "\\" + fi.Name, fr.Read());
+                    File.WriteAllBytes(path + "\\" + fi.Name, fr.Read(stream));
                     count++;
                 }
             }
