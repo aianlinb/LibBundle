@@ -204,15 +204,15 @@ namespace VisualBundle
             var f = tvi.Record as FileRecord;
             if (f != null) //Selected File
             {
-                var ofd = new SaveFileDialog
+                var sfd = new SaveFileDialog
                 {
                     FileName = Path.GetFileName(ic.Hashes[f.Hash]),
                     Filter = "All Files|*.*"
                 };
-                if (ofd.ShowDialog() == true)
+                if (sfd.ShowDialog() == true)
                 {
-                    File.WriteAllBytes(ofd.FileName, f.Read());
-                    MessageBox.Show("Saved: " + f.Size + " Bytes" + Environment.NewLine + ofd.FileName, "Done");
+                    File.WriteAllBytes(sfd.FileName, f.Read());
+                    MessageBox.Show("Saved: " + f.Size + " Bytes" + Environment.NewLine + sfd.FileName, "Done");
                 }
             }
             else //Selected Directory
@@ -223,14 +223,16 @@ namespace VisualBundle
                 };
                 if (ofd.ShowDialog() == true)
                 {
-                    var path = Path.GetFileNameWithoutExtension(ofd.FileName);
+                    var path = Path.GetDirectoryName(ofd.FileName) + "\\" + Path.GetFileNameWithoutExtension(ofd.FileName);
                     var fis = tvi.ChildItems;
-                    MessageBox.Show("Exported " + ExportDir(fis, path).ToString() + " Files", "Done");
+                    var s = ((BundleRecord)GetSelectedBundle().Record).Bundle.Read();
+                    MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
+                    s.Close();
                 }
             }
         }
 
-        private int ExportDir(ICollection<ItemModel> fis, string path)
+        private int ExportDir(ICollection<ItemModel> fis, string path, Stream stream)
         {
             int count = 0;
             Directory.CreateDirectory(path);
@@ -239,8 +241,8 @@ namespace VisualBundle
                 var fr = fi.Record as FileRecord;
                 if (fr == null) // is directory
                 {
-                    Directory.CreateDirectory(path + "\\" + fi.Path);
-                    count += ExportDir(fi.ChildItems, path + "\\" + fi.Name);
+                    Directory.CreateDirectory(path + "\\" + fi.Name);
+                    count += ExportDir(fi.ChildItems, path + "\\" + fi.Name, stream);
                 }
                 else // is file
                 {

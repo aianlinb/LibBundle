@@ -20,12 +20,12 @@ namespace LibBundle.Records
             Size = br.ReadInt32();
         }
 
-        public byte[] Read()
+        public byte[] Read(Stream stream = null)
         {
             if (!bundleRecord.dataToAdd.TryGetValue(this, out byte[] b))
             {
                 b = new byte[Size];
-                var data = bundleRecord.Bundle.Read();
+                var data = stream == null ? bundleRecord.Bundle.Read() : stream;
                 data.Seek(Offset, SeekOrigin.Begin);
                 data.Read(b, 0, Size);
             }
