@@ -17,7 +17,9 @@ namespace VisualBundle
         public IndexContainer ic;
         private FileRecord moveF;
         private ItemModel moveD;
-        private readonly HashSet<BundleRecord> changed = new HashSet<BundleRecord>();
+        public readonly HashSet<BundleRecord> changed = new HashSet<BundleRecord>();
+        public List<BundleRecord> loadedBundles = new List<BundleRecord>();
+        public string filtered = "";
 
         public MainWindow()
         {
@@ -40,18 +42,6 @@ namespace VisualBundle
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            if (!File.Exists("LibBundle.dll"))
-            {
-                MessageBox.Show("File not found: LibBundle.dll", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Close();
-                return;
-            }
-            if (!File.Exists("oo2core_8_win64.dll"))
-            {
-                MessageBox.Show("File not found: oo2core_8_win64.dll", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                Close();
-                return;
-            }
             string indexPath;
             if (Environment.GetCommandLineArgs().Length > 1 && Path.GetFileName(Environment.GetCommandLineArgs()[1]) == "_.index.bin")
                 indexPath = Environment.GetCommandLineArgs()[1];
@@ -81,22 +71,29 @@ namespace VisualBundle
             }
 
             Environment.CurrentDirectory = Path.GetDirectoryName(indexPath);
-            var root = new FolderModel();
             ic = new IndexContainer("_.index.bin");
+            UpdateBundleList();
+        }
+
+        public void UpdateBundleList()
+        {
+            var root = new FolderModel("Bundles2");
+            loadedBundles.Clear();
+            View2.Items.Clear();
             foreach (var b in ic.Bundles)
                 if (File.Exists(b.Name))
                     BuildTree(root, b.Name, b);
-            foreach (var tvi in root.ChildItems)
-                View1.Items.Add(tvi);
+            View1.Items.Clear();
+            View1.Items.Add(root);
             ButtonReplaceAll.IsEnabled = true;
         }
 
-        private ItemModel GetSelectedBundle()
+        public ItemModel GetSelectedBundle()
         {
             return (ItemModel)View1.SelectedItem;
         }
 
-        private ItemModel GetSelectedFile()
+        public ItemModel GetSelectedFile()
         {
             return (ItemModel)View2.SelectedItem;
         }
@@ -121,12 +118,11 @@ namespace VisualBundle
                 offsetView.Text = br.indexOffset.ToString();
                 sizeView.Text = br.Size.ToString();
                 noView.Text = br.bundleIndex.ToString();
-                var root = new FolderModel();
+                var root = new FolderModel("Bundles2");
                 foreach (var f in br.Files)
                     BuildTree(root, ic.Hashes.ContainsKey(f.Hash) ? ic.Hashes[f.Hash] : null, f);
                 View2.Items.Clear();
-                foreach (var t in root.ChildItems)
-                    View2.Items.Add(t);
+                View2.Items.Add(root);
                 ButtonAdd.IsEnabled = true;
             }
         }
@@ -167,33 +163,37 @@ namespace VisualBundle
         public void BuildTree(ItemModel root, string path, object file)
         {
             if (path == null) return;
-
-            var paths = path.Split('/');
+            if (file is BundleRecord)
+            {
+                foreach (var f in ((BundleRecord)file).Files)
+                    if (ic.Hashes[f.Hash].ToLower().Contains(filtered))
+                    {
+                        loadedBundles.Add((BundleRecord)file);
+                        goto S;
+                    }
+                return;
+            }
+            else if (!path.ToLower().Contains(filtered)) return;
+         S:
+            var SplittedPath = path.Split('/');
             ItemModel parent = root;
 
-            for (int i = 0; i < paths.Length; i++)
+            for (int i = 0; i < SplittedPath.Length; i++)
             {
-                var name = paths[i];
-                var isFile = (i + 1 == paths.Length);
+                var name = SplittedPath[i];
+                var isFile = (i + 1 == SplittedPath.Length);
                 var next = parent.GetChildItem(name);
 
                 if (next is null)
-                {//no exist node
-                    // build new node
+                { //No exist node, Build a new node
                     if (isFile)
-                    {
-                        next = new FileModel(name);
-                        next.Record = file;
-                    }
+                        next = new FileModel(name) { Record = file };
                     else
-                    {
                         next = new FolderModel(name);
-                    }
                     parent.AddChildItem(next);
                 }
                 parent = next;
             }
-
         }
 
         private void OnButtonExportClick(object sender, RoutedEventArgs e)
@@ -217,13 +217,13 @@ namespace VisualBundle
             }
             else //Selected Directory
             {
-                var ofd = new SaveFileDialog
+                var sfd = new SaveFileDialog
                 {
                     FileName = tvi.Name
                 };
-                if (ofd.ShowDialog() == true)
+                if (sfd.ShowDialog() == true)
                 {
-                    var path = Path.GetDirectoryName(ofd.FileName) + "\\" + Path.GetFileNameWithoutExtension(ofd.FileName);
+                    var path = Path.GetDirectoryName(sfd.FileName) + "\\" + Path.GetFileNameWithoutExtension(sfd.FileName);
                     var fis = tvi.ChildItems;
                     var s = ((BundleRecord)GetSelectedBundle().Record).Bundle.Read();
                     MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
@@ -232,7 +232,7 @@ namespace VisualBundle
             }
         }
 
-        private int ExportDir(ICollection<ItemModel> fis, string path, Stream stream)
+        public int ExportDir(ICollection<ItemModel> fis, string path, Stream stream)
         {
             int count = 0;
             Directory.CreateDirectory(path);
@@ -300,21 +300,15 @@ namespace VisualBundle
             var br = tvi.Record as BundleRecord;
             if (br != null) //Selected Bundle File
             {
-                var fbd = new OpenFileDialog()
-                {
-                    ValidateNames = false,
-                    CheckFileExists = false,
-                    CheckPathExists = true,
-                    FileName = "(In Bundle2 Folder)"
-                };
+                var fbd = OpenBundles2Dialog();
                 if (fbd.ShowDialog() == true)
                 {
-                    var Bundle2_path = Path.GetDirectoryName(fbd.FileName);
-                    var fs = Directory.GetFiles(Bundle2_path, "*", SearchOption.AllDirectories);
+                    var Bundles2_path = Path.GetDirectoryName(fbd.FileName);
+                    var fs = Directory.GetFiles(Bundles2_path, "*", SearchOption.AllDirectories);
                     var paths = ic.Hashes.Values;
                     foreach (var f in fs)
                     {
-                        var path = f.Remove(0, Bundle2_path.Length + 1).Replace("\\", "/");
+                        var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
                         if (!paths.Contains(path))
                         {
                             MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error");
@@ -323,7 +317,7 @@ namespace VisualBundle
                     }
                     foreach (var f in fs)
                     {
-                        var path = f.Remove(0, Bundle2_path.Length + 1).Replace("\\", "/");
+                        var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
                         var fr = ic.FindFiles[IndexContainer.FNV1a64Hash(path)];
                         fr.Write(File.ReadAllBytes(f));
                         fr.Move(br);
@@ -451,7 +445,7 @@ namespace VisualBundle
 
         private void ButtonReplaceAllClick(object sender, RoutedEventArgs e)
         {
-            var fbd = OpenBundle2Dialog();
+            var fbd = OpenBundles2Dialog();
             if (fbd.ShowDialog() == true)
             {
                 if (MessageBox.Show(
@@ -461,20 +455,19 @@ namespace VisualBundle
                     "Replace All Confirm",
                     MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK)
                 {
-                    var Bundle2_path = Path.GetDirectoryName(fbd.FileName);
-                    var fs = Directory.GetFiles(Bundle2_path, "*", SearchOption.AllDirectories);
+                    var Bundles2_path = Path.GetDirectoryName(fbd.FileName);
+                    var fs = Directory.GetFiles(Bundles2_path, "*", SearchOption.AllDirectories);
                     var paths = ic.Hashes.Values;
-                    var loadedbundles = GetLoadedBundleRecordAll();
                     var count = 0;
                     var size = 0;
                     foreach (var f in fs)
                     {
-                        var path = f.Remove(0, Bundle2_path.Length + 1).Replace("\\", "/");
+                        var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
                         if (paths.Contains(path))
                         {
                             var fr = ic.FindFiles[IndexContainer.FNV1a64Hash(path)];
                             var br = fr.bundleRecord;
-                            if (loadedbundles.Contains(br))
+                            if (loadedBundles.Contains(br))
                             {
                                 fr.Write(File.ReadAllBytes(f));
                                 changed.Add(br);
@@ -490,36 +483,13 @@ namespace VisualBundle
             }
         }
 
-        private HashSet<BundleRecord> GetLoadedBundleRecordAll()
+        private void OnButtonFilterClick(object sender, RoutedEventArgs e)
         {
-            var bundles = new HashSet<BundleRecord>();
-            var queue = new Queue<ItemModel>();
-            foreach (ItemModel item in View1.Items)
-            {
-                queue.Enqueue(item);
-            }
-            while (queue.Count > 0)
-            {
-                ItemModel item = queue.Dequeue();
-                if (item as FolderModel != null)
-                {
-                    foreach (var childitem in item.ChildItems)
-                    {
-                        queue.Enqueue(childitem);
-                    }
-                    continue;
-                }
-                if (item.Record as BundleRecord != null)
-                {
-                    bundles.Add(item.Record as BundleRecord);
-                    continue;
-                }
-            }
-            return bundles;
-
+            filtered = TextBoxFilter.Text.ToLower();
+            UpdateBundleList();
         }
 
-        private OpenFileDialog OpenBundle2Dialog()
+        public OpenFileDialog OpenBundles2Dialog()
         {
             var ofd = new OpenFileDialog()
             {
