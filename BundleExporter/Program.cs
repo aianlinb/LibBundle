@@ -37,7 +37,7 @@ namespace BundleExporter
             Console.WriteLine(ic.Directorys.Length.ToString() + " DirectoryRecords");
             var ExistBundle = ic.Bundles.Where(o => File.Exists(o.Name));
             Console.WriteLine(ExistBundle.Count().ToString() + " bundle.bin");
-            Console.WriteLine("");
+            Console.WriteLine();
 
             int count = 0;
             foreach (var b in ExistBundle)
