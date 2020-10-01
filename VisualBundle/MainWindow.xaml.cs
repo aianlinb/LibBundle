@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace VisualBundle
@@ -85,6 +86,7 @@ namespace VisualBundle
                     BuildTree(root, b.Name, b);
             View1.Items.Clear();
             View1.Items.Add(root);
+            View1.ItemContainerGenerator.ContainerFromIndex(0)?.SetValue(TreeViewItem.IsExpandedProperty, true);
             ButtonReplaceAll.IsEnabled = true;
         }
 
@@ -98,17 +100,54 @@ namespace VisualBundle
             return (ItemModel)View2.SelectedItem;
         }
 
+        private void OnView1GotFocus(object sender, RoutedEventArgs e)
+        {
+            var v2 = GetSelectedFile();
+            if (v2 != null)
+                SetUnselected(v2);
+        }
+
+        public void SetUnselected(ItemModel item, Stack<ItemModel> stack = null)
+        {
+            if (stack == null)
+                stack = new Stack<ItemModel>();
+            if (item.Parent == null)
+            {
+                TreeViewItem tvi = (TreeViewItem)View2.ItemContainerGenerator.ContainerFromItem(item); ;
+                while (stack.Count > 0)
+                    tvi = (TreeViewItem)tvi.ItemContainerGenerator.ContainerFromItem(stack.Pop());
+                tvi.IsSelected = false;
+            }
+            else
+            {
+                stack.Push(item);
+                SetUnselected(item.Parent, stack);
+            }
+        }
+
         private void OnTreeView1SelectedChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
             var tvi = GetSelectedBundle();
             if (tvi == null) //No Selected
             {
+                View2.Items.Clear();
                 ButtonAdd.IsEnabled = false;
+                ButtonExport.IsEnabled = false;
+                offsetView.Text = "";
+                sizeView.Text = "";
+                noView.Text = "";
                 return;
             }
             var br = tvi.Record as BundleRecord;
             if (br == null) //Selected Directory
+            {
+                View2.Items.Clear();
                 ButtonAdd.IsEnabled = false;
+                ButtonExport.IsEnabled = true;
+                offsetView.Text = "";
+                sizeView.Text = "";
+                noView.Text = "";
+            }
             else //Selected Bundle File
             {
                 if (moveD != null)
@@ -123,20 +162,23 @@ namespace VisualBundle
                     BuildTree(root, ic.Hashes.ContainsKey(f.Hash) ? ic.Hashes[f.Hash] : null, f);
                 View2.Items.Clear();
                 View2.Items.Add(root);
+                View2.ItemContainerGenerator.ContainerFromIndex(0)?.SetValue(TreeViewItem.IsExpandedProperty, true);
                 ButtonAdd.IsEnabled = true;
+                ButtonExport.IsEnabled = true;
             }
         }
 
         private void OnTreeView2SelectedChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         {
-
             var tvi = GetSelectedFile();
             if (tvi == null) //No Selected
             {
-                ButtonExport.IsEnabled = false;
                 ButtonReplace.IsEnabled = false;
                 ButtonMove.IsEnabled = false;
                 ButtonOpen.IsEnabled = false;
+                BOffsetView.Text = "";
+                IOffsetView.Text = "";
+                fSizeView.Text = "";
                 return;
             }
             var fr = tvi.Record as FileRecord;
@@ -146,6 +188,9 @@ namespace VisualBundle
                 ButtonReplace.IsEnabled = false;
                 ButtonMove.IsEnabled = true;
                 ButtonOpen.IsEnabled = false;
+                BOffsetView.Text = "";
+                IOffsetView.Text = "";
+                fSizeView.Text = "";
             }
             else //Selected File
             {
@@ -157,7 +202,6 @@ namespace VisualBundle
                 ButtonMove.IsEnabled = true;
                 ButtonOpen.IsEnabled = true;
             }
-
         }
 
         public void BuildTree(ItemModel root, string path, object file)
@@ -200,34 +244,72 @@ namespace VisualBundle
         {
             var tvi = GetSelectedFile();
             if (tvi == null)
-                return;
-            var f = tvi.Record as FileRecord;
-            if (f != null) //Selected File
             {
-                var sfd = new SaveFileDialog
+                tvi = GetSelectedBundle();
+                if (tvi == null)
+                    return;
+                //View1
+                var b = tvi.Record as BundleRecord;
+                if (b != null) //Selected Bundle File
                 {
-                    FileName = Path.GetFileName(ic.Hashes[f.Hash]),
-                    Filter = "All Files|*.*"
-                };
-                if (sfd.ShowDialog() == true)
+                    tvi = View2.Items[0] as FolderModel;
+                    var sfd = new SaveFileDialog
+                    {
+                        FileName = tvi.Name + ".dir"
+                    };
+                    if (sfd.ShowDialog() == true)
+                    {
+                        var path = Path.GetDirectoryName(sfd.FileName) + "\\" + Path.GetFileNameWithoutExtension(sfd.FileName);
+                        var fis = tvi.ChildItems;
+                        var s = ((BundleRecord)GetSelectedBundle().Record).Bundle.Read();
+                        MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
+                        s.Close();
+                    }
+                }
+                else //Selected Directory
                 {
-                    File.WriteAllBytes(sfd.FileName, f.Read());
-                    MessageBox.Show("Saved: " + f.Size + " Bytes" + Environment.NewLine + sfd.FileName, "Done");
+                    var sfd = new SaveFileDialog
+                    {
+                        FileName = "Bundles2.dir"
+                    };
+                    if (sfd.ShowDialog() == true)
+                    {
+                        var path = Path.GetDirectoryName(sfd.FileName) + "\\" + Path.GetFileNameWithoutExtension(sfd.FileName);
+                        var fis = tvi.ChildItems;
+                        MessageBox.Show("Exported " + ExportBundleDir(fis, path).ToString() + " Files", "Done");
+                    }
                 }
             }
-            else //Selected Directory
+            else //View2
             {
-                var sfd = new SaveFileDialog
+                var f = tvi.Record as FileRecord;
+                if (f != null) //Selected File
                 {
-                    FileName = tvi.Name
-                };
-                if (sfd.ShowDialog() == true)
+                    var sfd = new SaveFileDialog
+                    {
+                        FileName = Path.GetFileName(ic.Hashes[f.Hash]),
+                        Filter = "All Files|*.*"
+                    };
+                    if (sfd.ShowDialog() == true)
+                    {
+                        File.WriteAllBytes(sfd.FileName, f.Read());
+                        MessageBox.Show("Saved: " + f.Size + " Bytes" + Environment.NewLine + sfd.FileName, "Done");
+                    }
+                }
+                else //Selected Directory
                 {
-                    var path = Path.GetDirectoryName(sfd.FileName) + "\\" + Path.GetFileNameWithoutExtension(sfd.FileName);
-                    var fis = tvi.ChildItems;
-                    var s = ((BundleRecord)GetSelectedBundle().Record).Bundle.Read();
-                    MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
-                    s.Close();
+                    var sfd = new SaveFileDialog
+                    {
+                        FileName = tvi.Name + ".dir"
+                    };
+                    if (sfd.ShowDialog() == true)
+                    {
+                        var path = Path.GetDirectoryName(sfd.FileName) + "\\" + Path.GetFileNameWithoutExtension(sfd.FileName);
+                        var fis = tvi.ChildItems;
+                        var s = ((BundleRecord)GetSelectedBundle().Record).Bundle.Read();
+                        MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
+                        s.Close();
+                    }
                 }
             }
         }
@@ -248,6 +330,27 @@ namespace VisualBundle
                 {
                     File.WriteAllBytes(path + "\\" + fi.Name, fr.Read(stream));
                     count++;
+                }
+            }
+            return count;
+        }
+
+        public int ExportBundleDir(ICollection<ItemModel> fis, string path)
+        {
+            int count = 0;
+            foreach (var fi in fis)
+            {
+                var br = fi.Record as BundleRecord;
+                if (br == null) // is directory
+                    count += ExportBundleDir(fi.ChildItems, path);
+                else // is bundle
+                {
+                    var root = new FolderModel("Bundles2");
+                    foreach (var f in br.Files)
+                        BuildTree(root, ic.Hashes.ContainsKey(f.Hash) ? ic.Hashes[f.Hash] : null, f);
+                    var s = br.Bundle.Read();
+                    count += ExportDir(root.ChildItems, path, s);
+                    s.Close();
                 }
             }
             return count;
@@ -487,6 +590,12 @@ namespace VisualBundle
         {
             filtered = TextBoxFilter.Text.ToLower();
             UpdateBundleList();
+        }
+
+        private void OnFilterKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (!e.IsRepeat && e.Key == System.Windows.Input.Key.Enter)
+                OnButtonFilterClick(sender, null);
         }
 
         public OpenFileDialog OpenBundles2Dialog()
