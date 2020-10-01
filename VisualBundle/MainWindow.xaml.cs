@@ -524,13 +524,15 @@ namespace VisualBundle
                     Dispatcher.Invoke(sw.Close);
                 } catch (Exception ex)
                 {
-                    var ew = new ErrorWindow();
-                    var tr = new Thread(new ParameterizedThreadStart(ew.ShowError))
-                    {
-                        CurrentUICulture = new System.Globalization.CultureInfo("en-US")
-                    };
-                    tr.Start(ex);
-                    Dispatcher.Invoke(() => { if (ew.ShowDialog() != true) Close(); });
+                    Dispatcher.Invoke(() => {
+                        var ew = new ErrorWindow();
+                        var tr = new Thread(new ParameterizedThreadStart(ew.ShowError))
+                        {
+                            CurrentUICulture = new System.Globalization.CultureInfo("en-US")
+                        };
+                        tr.Start(ex);
+                        if (ew.ShowDialog() != true) Close();
+                    });
                 }
             }));
             t.Start();

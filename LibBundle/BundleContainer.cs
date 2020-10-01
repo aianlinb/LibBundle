@@ -108,8 +108,6 @@ namespace LibBundle
         //UnPacking
         public MemoryStream Read(BinaryReader br = null)
         {
-            if (dataToSave != null)
-                throw new NotSupportedException("Save() cannot be called when it's implemented using a constructor with data and path parameters");
             if (br == null)
                 if (path == null)
                     throw new ArgumentException("BundleContainer implemented using a constructor with BinaryReader parameters must include the br parameter when calling Read()", "br");

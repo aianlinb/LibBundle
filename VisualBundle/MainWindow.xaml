@@ -1,9 +1,9 @@
 ﻿<Window x:Class="VisualBundle.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="VisualBundle v1.1.0" Height="480" Width="800" Loaded="OnLoaded" Closing="OnWindowClosing">
+        Title="VisualBundle v1.2.0" Height="480" Width="800" Loaded="OnLoaded" Closing="OnWindowClosing">
     <Window.Resources>
-        <HierarchicalDataTemplate x:Key="FileViewItemTemplate" DataType="x:Type self:ItemModel" ItemsSource="{Binding ChildItems}">
+        <HierarchicalDataTemplate x:Key="FileViewItemTemplate" DataType="x:Type VisualBundle:ItemModel" ItemsSource="{Binding ChildItems}">
             <StackPanel Orientation="Horizontal">
                 <Image Source="{Binding Icon}" Width="20" Height="20"/>
                 <TextBlock Text="{Binding Name}" FontSize="16"/>
