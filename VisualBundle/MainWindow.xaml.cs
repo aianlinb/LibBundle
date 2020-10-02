@@ -155,7 +155,7 @@ namespace VisualBundle
                 if (moveF != null)
                     MoveF(br);
                 offsetView.Text = br.indexOffset.ToString();
-                sizeView.Text = br.Size.ToString();
+                sizeView.Text = br.UncompressedSize.ToString();
                 noView.Text = br.bundleIndex.ToString();
                 var root = new FolderModel("Bundles2");
                 foreach (var f in br.Files)
@@ -554,7 +554,7 @@ namespace VisualBundle
             if (fbd.ShowDialog() == true)
             {
                 if (MessageBox.Show(
-                    "This will replace all files to every loaded bundles." + Environment.NewLine
+                    "This will replace all files to every loaded bundles (doesn't contain which were filtered)." + Environment.NewLine
                     + "And bundles which weren't loaded won't be changed." + Environment.NewLine
                     + "Are you sure you want to do this?",
                     "Replace All Confirm",

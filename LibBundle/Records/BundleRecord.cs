@@ -9,7 +9,7 @@ namespace LibBundle.Records
         public int bundleIndex;
         public int nameLength;
         public string Name;
-        public int Size;
+        public int UncompressedSize;
         public List<FileRecord> Files;
         internal Dictionary<FileRecord, byte[]> dataToAdd = new Dictionary<FileRecord, byte[]>();
         private BundleContainer _bundle;
@@ -29,7 +29,7 @@ namespace LibBundle.Records
             indexOffset = br.BaseStream.Position;
             nameLength = br.ReadInt32();
             Name = System.Text.Encoding.UTF8.GetString(br.ReadBytes(nameLength)) + ".bundle.bin";
-            Size = br.ReadInt32();
+            UncompressedSize = br.ReadInt32();
             Files = new List<FileRecord>();
         }
 
@@ -59,6 +59,7 @@ namespace LibBundle.Records
                 }
             }
             Bundle.dataToSave = dataToSave.ToArray();
+            UncompressedSize = Bundle.dataToSave.Length;
             Bundle.Save(path);
             dataToAdd = new Dictionary<FileRecord, byte[]>();
             data.Close();

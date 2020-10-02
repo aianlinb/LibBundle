@@ -111,7 +111,7 @@ namespace LibBundle
             {
                 bw.Write(b.nameLength);
                 bw.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.nameLength);
-                bw.Write(b.Size);
+                bw.Write(b.UncompressedSize);
             }
             bw.Write(Files.Length);
             foreach (var f in Files)
