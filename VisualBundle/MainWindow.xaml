@@ -1,7 +1,7 @@
 ﻿<Window x:Class="VisualBundle.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="VisualBundle v1.2.0" Height="480" Width="800" Loaded="OnLoaded" Closing="OnWindowClosing">
+        Title="VisualBundle v1.2.1" Height="480" Width="800" Loaded="OnLoaded" Closing="OnWindowClosing">
     <Window.Resources>
         <HierarchicalDataTemplate x:Key="FileViewItemTemplate" DataType="x:Type VisualBundle:ItemModel" ItemsSource="{Binding ChildItems}">
             <StackPanel Orientation="Horizontal">
@@ -13,14 +13,14 @@
     <Grid>
         <TreeView x:Name="View1" VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" ItemTemplate="{StaticResource FileViewItemTemplate}" SelectedItemChanged="OnTreeView1SelectedChanged" HorizontalAlignment="Left" VerticalAlignment="Stretch" Width="250" Margin="0,35,0,0" GotFocus="OnView1GotFocus"/>
         <TextBlock HorizontalAlignment="Left" TextWrapping="Wrap" Text="Offset:" VerticalAlignment="Top" Margin="260,10,0,0"/>
-        <TextBlock HorizontalAlignment="Left" TextWrapping="Wrap" Text="Size:" VerticalAlignment="Top" Margin="420,10,0,0"/>
-        <TextBlock HorizontalAlignment="Left" TextWrapping="Wrap" Text="No:" VerticalAlignment="Top" Margin="580,10,0,0"/>
-        <TextBox x:Name="offsetView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="310,6,0,0"/>
-        <TextBox x:Name="sizeView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="460,6,0,0"/>
-        <TextBox x:Name="noView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="610,6,0,0"/>
+        <TextBlock HorizontalAlignment="Left" TextWrapping="Wrap" Text="UncompressedSize:" VerticalAlignment="Top" Margin="420,10,0,0"/>
+        <TextBlock HorizontalAlignment="Left" TextWrapping="Wrap" Text="No:" VerticalAlignment="Top" Margin="650,10,0,0"/>
+        <TextBox x:Name="offsetView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="305,6,0,0"/>
+        <TextBox x:Name="sizeView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="540,6,0,0"/>
+        <TextBox x:Name="noView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="90" Margin="680,6,0,0"/>
         <TreeView x:Name="View2" ItemTemplate="{StaticResource FileViewItemTemplate}" SelectedItemChanged="OnTreeView2SelectedChanged" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="250,35,235,0"/>
-        <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="Offset (Bundle):" VerticalAlignment="Top" Margin="0,60,130,0"/>
-        <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="Offset (Index):" VerticalAlignment="Top" Margin="0,90,130,0"/>
+        <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="FileDataOffset:" VerticalAlignment="Top" Margin="0,60,130,0"/>
+        <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="FileRecordOffset:" VerticalAlignment="Top" Margin="0,90,130,0"/>
         <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="FileSize:" VerticalAlignment="Top" Margin="0,120,130,0"/>
         <TextBox x:Name="BOffsetView" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="0,56,25,0"/>
         <TextBox x:Name="IOffsetView" HorizontalAlignment="Right" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="0,86,25,0"/>
