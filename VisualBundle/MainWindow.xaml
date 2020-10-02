@@ -34,7 +34,7 @@
         <Button x:Name="ButtonSave" Content="Save" IsEnabled="False" HorizontalAlignment="Right" Margin="0,350,25,0" VerticalAlignment="Top" Width="75" Click="OnButtonSaveClick"/>
         <TextBlock x:Name="MessageLabel" HorizontalAlignment="Right" TextWrapping="Wrap" Text="" Foreground="Red" VerticalAlignment="Bottom" Margin="0,0,10,30"/>
         <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="Copyright © 2020 aianlinb." VerticalAlignment="Bottom" Margin="0,0,10,5"/>
-        <TextBox x:Name="TextBoxFilter" HorizontalAlignment="Left" Height="25" TextWrapping="Wrap" VerticalAlignment="Top" Width="160" FontSize="16" Margin="5,5,0,0" KeyDown="OnFilterKeyDown"/>
-        <Button Content="Filter" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="170,5,0,0" Height="25" Click="OnButtonFilterClick" FontSize="16"/>
+        <TextBox x:Name="TextBoxFilter" HorizontalAlignment="Left" Height="25" TextWrapping="Wrap" VerticalAlignment="Top" Width="160" FontSize="16" Margin="5,5,0,0" KeyDown="OnFilterKeyDown" TextChanged="OnFilterTextChanged"/>
+        <Button x:Name="ButtonFilter" Content="Filter" IsEnabled="False" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="170,5,0,0" Height="25" Click="OnButtonFilterClick" FontSize="16"/>
     </Grid>
 </Window>
