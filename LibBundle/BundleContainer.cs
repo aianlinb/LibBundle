@@ -168,9 +168,7 @@ namespace LibBundle
 
             bw.BaseStream.Seek(offset + 60, SeekOrigin.Begin);
             for (int i = 0; i < entry_count; i++)
-            {
                 bw.Write(chunks[i]);
-            }
 
             size_compressed = data_size;
             bw.BaseStream.Seek(offset, SeekOrigin.Begin);

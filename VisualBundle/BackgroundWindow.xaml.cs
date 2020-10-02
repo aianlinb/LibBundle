@@ -1,9 +1,9 @@
 ﻿using System.Windows;
 namespace VisualBundle
 {
-    public partial class SavingWindow : Window
+    public partial class BackgroundWindow : Window
     {
-        public SavingWindow()
+        public BackgroundWindow()
         {
             InitializeComponent();
             Closing += OnClosing;
