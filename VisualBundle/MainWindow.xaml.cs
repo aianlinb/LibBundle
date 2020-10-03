@@ -570,7 +570,7 @@ namespace VisualBundle
 
         private void OnButtonOpenClick(object sender, RoutedEventArgs e)
         {
-            var tvi = GetSelectedBundle();
+            var tvi = GetSelectedFile();
             if (tvi == null)
                 return;
             if (tvi is NotExistModel)
