@@ -7,7 +7,6 @@ namespace VisualBundle
         public ErrorWindow()
         {
             InitializeComponent();
-            Closing += OnClosing;
         }
 
         public void ShowError(object e)
@@ -18,7 +17,6 @@ namespace VisualBundle
                 ButtonCopy.IsEnabled = true;
                 ButtonResume.IsEnabled = true;
                 ButtonStop.IsEnabled = true;
-                Closing -= OnClosing;
             }));
         }
 
@@ -40,12 +38,14 @@ namespace VisualBundle
         private void OnResumeClick(object sender, RoutedEventArgs e)
         {
             DialogResult = true;
+            Closing -= OnClosing;
             Close();
         }
 
         private void OnStopClick(object sender, RoutedEventArgs e)
         {
             DialogResult = false;
+            Closing -= OnClosing;
             Close();
         }
     }

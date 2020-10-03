@@ -4,12 +4,14 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
+using System.Windows.Interop;
+using System.Windows.Media.Imaging;
 
 namespace VisualBundle
 {
@@ -20,7 +22,11 @@ namespace VisualBundle
         private ItemModel moveD;
         public readonly HashSet<BundleRecord> changed = new HashSet<BundleRecord>();
         public List<BundleRecord> loadedBundles = new List<BundleRecord>();
+        public BackgroundWindow CurrentBackground;
         public string filtered = "";
+        public static BitmapSource file;
+        public static BitmapSource dir;
+        public static BitmapSource notexist;
 
         public MainWindow()
         {
@@ -38,7 +44,12 @@ namespace VisualBundle
             t.Start(e.Exception);
             e.Handled = true;
             if (ew.ShowDialog() != true)
+            {
+                if (CurrentBackground != null)
+                    CurrentBackground.Closing -= CurrentBackground.OnClosing;
+                CurrentBackground.Close();
                 Close();
+            }
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -54,29 +65,29 @@ namespace VisualBundle
                     FileName = "_.index.bin",
                     Filter = "GGG Bundle index|_.index.bin"
                 };
-            S:
                 if (ofd.ShowDialog() == true)
-                {
-                    if (ofd.SafeFileName != "_.index.bin")
-                    {
-                        MessageBox.Show("You must select _.index.bin!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        goto S;
-                    }
                     indexPath = ofd.FileName;
-                }
                 else
                 {
                     Close();
                     return;
                 }
             }
-
+            if (Path.GetFileName(indexPath) != "_.index.bin")
+            {
+                MessageBox.Show("You must select _.index.bin!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Close();
+                return;
+            }
             Environment.CurrentDirectory = Path.GetDirectoryName(indexPath);
             ic = new IndexContainer("_.index.bin");
+            file = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("file")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            dir = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("dir")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
+            notexist = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("notexist")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
             UpdateBundleList();
         }
 
-        public void UpdateBundleList()
+        public async void UpdateBundleList()
         {
             var root = new FolderModel("Bundles2");
             loadedBundles.Clear();
@@ -84,9 +95,12 @@ namespace VisualBundle
             foreach (var b in ic.Bundles)
                 if (File.Exists(b.Name))
                     BuildTree(root, b.Name, b);
+                else if (ShowAll.IsChecked == true)
+                    BuildNotExistTree(root, b.Name, b);
             View1.Items.Clear();
             View1.Items.Add(root);
-            View1.ItemContainerGenerator.ContainerFromIndex(0)?.SetValue(TreeViewItem.IsExpandedProperty, true);
+            await System.Threading.Tasks.Task.Delay(1); //Update UI
+            View1.ItemContainerGenerator.ContainerFromItem(root)?.SetValue(TreeViewItem.IsExpandedProperty, true);
             ButtonReplaceAll.IsEnabled = true;
         }
 
@@ -150,21 +164,28 @@ namespace VisualBundle
             }
             else //Selected Bundle File
             {
-                if (moveD != null)
+                if (moveD != null && tvi is FileModel)
                     MoveD(br);
-                if (moveF != null)
+                if (moveF != null && tvi is FileModel)
                     MoveF(br);
                 offsetView.Text = br.indexOffset.ToString();
                 sizeView.Text = br.UncompressedSize.ToString();
                 noView.Text = br.bundleIndex.ToString();
                 var root = new FolderModel("Bundles2");
                 foreach (var f in br.Files)
-                    BuildTree(root, ic.Hashes.ContainsKey(f.Hash) ? ic.Hashes[f.Hash] : null, f);
+                    BuildTree(root, ic.Hashes[f.Hash], f);
                 View2.Items.Clear();
                 View2.Items.Add(root);
                 View2.ItemContainerGenerator.ContainerFromIndex(0)?.SetValue(TreeViewItem.IsExpandedProperty, true);
-                ButtonAdd.IsEnabled = true;
-                ButtonExport.IsEnabled = true;
+                if (tvi is FileModel)
+                {
+                    ButtonAdd.IsEnabled = true;
+                    ButtonExport.IsEnabled = true;
+                } else
+                {
+                    ButtonAdd.IsEnabled = false;
+                    ButtonExport.IsEnabled = false;
+                }
             }
         }
 
@@ -206,7 +227,6 @@ namespace VisualBundle
 
         public void BuildTree(ItemModel root, string path, object file)
         {
-            if (path == null) return;
             if (file is BundleRecord)
             {
                 foreach (var f in ((BundleRecord)file).Files)
@@ -221,17 +241,41 @@ namespace VisualBundle
          S:
             var SplittedPath = path.Split('/');
             ItemModel parent = root;
-
             for (int i = 0; i < SplittedPath.Length; i++)
             {
                 var name = SplittedPath[i];
                 var isFile = (i + 1 == SplittedPath.Length);
                 var next = parent.GetChildItem(name);
-
                 if (next is null)
                 { //No exist node, Build a new node
                     if (isFile)
                         next = new FileModel(name) { Record = file };
+                    else
+                        next = new FolderModel(name);
+                    parent.AddChildItem(next);
+                }
+                parent = next;
+            }
+        }
+
+        public void BuildNotExistTree(ItemModel root, string path, object file)
+        {
+            foreach (var f in ((BundleRecord)file).Files)
+                if (ic.Hashes[f.Hash].ToLower().Contains(filtered))
+                    goto S;
+            return;
+          S:
+            var SplittedPath = path.Split('/');
+            ItemModel parent = root;
+            for (int i = 0; i < SplittedPath.Length; i++)
+            {
+                var name = SplittedPath[i];
+                var isFile = (i + 1 == SplittedPath.Length);
+                var next = parent.GetChildItem(name);
+                if (next is null)
+                { //No exist node, Build a new node
+                    if (isFile)
+                        next = new NotExistModel(name) { Record = file };
                     else
                         next = new FolderModel(name);
                     parent.AddChildItem(next);
@@ -248,6 +292,11 @@ namespace VisualBundle
                 tvi = GetSelectedBundle();
                 if (tvi == null)
                     return;
+                if (tvi is NotExistModel)
+                {
+                    MessageBox.Show("This bundle wasn't loaded!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
                 //View1
                 var b = tvi.Record as BundleRecord;
                 if (b != null) //Selected Bundle File
@@ -261,9 +310,12 @@ namespace VisualBundle
                     {
                         var path = Path.GetDirectoryName(sfd.FileName) + "\\" + Path.GetFileNameWithoutExtension(sfd.FileName);
                         var fis = tvi.ChildItems;
-                        var s = ((BundleRecord)GetSelectedBundle().Record).Bundle.Read();
-                        MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
-                        s.Close();
+                        RunBackground(() => {
+                            Dispatcher.Invoke(() => { CurrentBackground.Message.Text = "Exporting . . ."; });
+                            var s = ((BundleRecord)Dispatcher.Invoke(GetSelectedBundle).Record).Bundle.Read();
+                            MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
+                            s.Close();
+                        });
                     }
                 }
                 else //Selected Directory
@@ -276,12 +328,20 @@ namespace VisualBundle
                     {
                         var path = Path.GetDirectoryName(sfd.FileName) + "\\" + Path.GetFileNameWithoutExtension(sfd.FileName);
                         var fis = tvi.ChildItems;
-                        MessageBox.Show("Exported " + ExportBundleDir(fis, path).ToString() + " Files", "Done");
+                        RunBackground(() => {
+                            Dispatcher.Invoke(() => { CurrentBackground.Message.Text = "Exporting . . ."; });
+                            MessageBox.Show("Exported " + ExportBundleDir(fis, path).ToString() + " Files", "Done");
+                        });
                     }
                 }
             }
             else //View2
             {
+                if (GetSelectedBundle() is NotExistModel)
+                {
+                    MessageBox.Show("This bundle wasn't loaded!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
                 var f = tvi.Record as FileRecord;
                 if (f != null) //Selected File
                 {
@@ -306,9 +366,12 @@ namespace VisualBundle
                     {
                         var path = Path.GetDirectoryName(sfd.FileName) + "\\" + Path.GetFileNameWithoutExtension(sfd.FileName);
                         var fis = tvi.ChildItems;
-                        var s = ((BundleRecord)GetSelectedBundle().Record).Bundle.Read();
-                        MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
-                        s.Close();
+                        RunBackground(() => {
+                            Dispatcher.Invoke(() => { CurrentBackground.Message.Text = "Exporting . . ."; });
+                            var s = ((BundleRecord)Dispatcher.Invoke(GetSelectedBundle).Record).Bundle.Read();
+                            MessageBox.Show("Exported " + ExportDir(fis, path, s).ToString() + " Files", "Done");
+                            s.Close();
+                        });
                     }
                 }
             }
@@ -340,6 +403,8 @@ namespace VisualBundle
             int count = 0;
             foreach (var fi in fis)
             {
+                if (fi is NotExistModel)
+                    continue;
                 var br = fi.Record as BundleRecord;
                 if (br == null) // is directory
                     count += ExportBundleDir(fi.ChildItems, path);
@@ -364,6 +429,11 @@ namespace VisualBundle
             var f = tvi.Record as FileRecord;
             if (f != null) //Selected File
             {
+                if (GetSelectedBundle() is NotExistModel)
+                {
+                    MessageBox.Show("This bundle wasn't loaded!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
                 var ofd = new OpenFileDialog { FileName = Path.GetFileName(ic.Hashes[f.Hash]) };
                 if (ofd.ShowDialog() == true)
                 {
@@ -381,6 +451,11 @@ namespace VisualBundle
             if (tvi == null)
                 return;
             var f = tvi.Record as FileRecord;
+            if (GetSelectedBundle() is NotExistModel)
+            {
+                MessageBox.Show("This bundle wasn't loaded!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             if (f != null) //Selected File
             {
                 moveF = f;
@@ -392,7 +467,7 @@ namespace VisualBundle
                 moveD = tvi;
             }
             MessageLabel.Text = "Select a bundle you wanna move to";
-            View1.Background = Brushes.LightYellow;
+            View1.Background = System.Windows.Media.Brushes.LightYellow;
         }
 
         private void OnButtonAddClick(object sender, RoutedEventArgs e)
@@ -400,6 +475,11 @@ namespace VisualBundle
             var tvi = GetSelectedBundle();
             if (tvi == null)
                 return;
+            if (tvi is NotExistModel)
+            {
+                MessageBox.Show("This bundle wasn't loaded!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             var br = tvi.Record as BundleRecord;
             if (br != null) //Selected Bundle File
             {
@@ -409,23 +489,31 @@ namespace VisualBundle
                     var Bundles2_path = Path.GetDirectoryName(fbd.FileName);
                     var fs = Directory.GetFiles(Bundles2_path, "*", SearchOption.AllDirectories);
                     var paths = ic.Hashes.Values;
-                    foreach (var f in fs)
+                    RunBackground(() =>
                     {
-                        var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
-                        if (!paths.Contains(path))
+                        Dispatcher.Invoke(() => { CurrentBackground.Message.Text = "Checking files . . ."; });
+                        foreach (var f in fs)
                         {
-                            MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error");
-                            return;
+                            var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
+                            if (!paths.Contains(path))
+                            {
+                                MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error");
+                                return;
+                            }
                         }
-                    }
-                    foreach (var f in fs)
-                    {
-                        var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
-                        var fr = ic.FindFiles[IndexContainer.FNV1a64Hash(path)];
-                        fr.Write(File.ReadAllBytes(f));
-                        fr.Move(br);
-                    }
-                    changed.Add(br);
+                        string str = "Added {0}/" + fs.Length.ToString() + " Files";
+                        int count = 0;
+                        foreach (var f in fs)
+                        {
+                            var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
+                            var fr = ic.FindFiles[IndexContainer.FNV1a64Hash(path)];
+                            fr.Write(File.ReadAllBytes(f));
+                            fr.Move(br);
+                            ++count;
+                            Dispatcher.Invoke(() => { CurrentBackground.Message.Text = string.Format(str, count); });
+                        }
+                        changed.Add(br);
+                    });
                     ButtonSave.IsEnabled = true;
                     MessageBox.Show("Added " + fs.Length.ToString() + " files to " + br.Name, "Done");
                 }
@@ -445,7 +533,7 @@ namespace VisualBundle
             }
             moveF = null;
             MessageLabel.Text = "";
-            View1.Background = Brushes.White;
+            View1.Background = System.Windows.Media.Brushes.White;
         }
 
         private void MoveD(BundleRecord br)
@@ -459,7 +547,7 @@ namespace VisualBundle
             }
             moveD = null;
             MessageLabel.Text = "";
-            View1.Background = Brushes.White;
+            View1.Background = System.Windows.Media.Brushes.White;
         }
 
         private int MoveDir(ICollection<ItemModel> fis, BundleRecord br)
@@ -482,15 +570,26 @@ namespace VisualBundle
 
         private void OnButtonOpenClick(object sender, RoutedEventArgs e)
         {
-            var tvi = View2.SelectedItem as ItemModel;
+            var tvi = GetSelectedBundle();
             if (tvi == null)
                 return;
+            if (tvi is NotExistModel)
+            {
+                MessageBox.Show("This bundle wasn't loaded!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
             var f = tvi.Record as FileRecord;
             if (f != null) //Selected File
             {
-                var path = Path.GetTempPath() + Path.DirectorySeparatorChar + Path.GetFileName(ic.Hashes[f.Hash]);
+                var path = Path.GetTempPath() + Path.GetFileName(ic.Hashes[f.Hash]);
                 File.WriteAllBytes(path, f.Read());
-                Process.Start(path).Exited += OnProcessExit;
+                try
+                {
+                    Process.Start(path).Exited += OnProcessExit;
+                } catch (System.ComponentModel.Win32Exception)
+                {
+                    Process.Start(new ProcessStartInfo("explorer.exe", "\"" + path + "\""));
+                }
             }
         }
 
@@ -506,37 +605,30 @@ namespace VisualBundle
         private void OnButtonSaveClick(object sender, RoutedEventArgs e)
         {
             ButtonSave.IsEnabled = false;
-            var sw = new SavingWindow();
-            var t = new Thread(new ThreadStart(() => {
-                try
+            RunBackground(() => {
+                var i = 1;
+                var text = "Saving {0} / " + (changed.Count + 1).ToString() + " bundles . . .";
+                foreach (var br in changed)
                 {
-                    var i = 1;
-                    var text = "Saving {0} / " + (changed.Count + 1).ToString() + " bundles . . .";
-                    foreach (var br in changed)
+                    Dispatcher.Invoke(() => { CurrentBackground.Message.Text = string.Format(text, i); });
+                  S:
+                    if (!File.Exists(br.Name))
                     {
-                        Dispatcher.Invoke(() => { sw.TextBlock1.Text = string.Format(text, i); });
-                        br.Save(br.Name);
-                        i++;
-                    }
-                    Dispatcher.Invoke(() => { sw.TextBlock1.Text = string.Format(text, i); });
-                    ic.Save("_.index.bin");
-                    sw.Closing -= sw.OnClosing;
-                    Dispatcher.Invoke(sw.Close);
-                } catch (Exception ex)
-                {
-                    Dispatcher.Invoke(() => {
-                        var ew = new ErrorWindow();
-                        var tr = new Thread(new ParameterizedThreadStart(ew.ShowError))
+                        if (MessageBox.Show("File Not Found:" + Environment.NewLine + Path.GetFullPath(br.Name) + "Please put the bundle to the path and click OK", "Error", MessageBoxButton.OKCancel, MessageBoxImage.Error) == MessageBoxResult.OK)
+                            goto S;
+                        else
                         {
-                            CurrentUICulture = new System.Globalization.CultureInfo("en-US")
-                        };
-                        tr.Start(ex);
-                        if (ew.ShowDialog() != true) Close();
-                    });
+                            MessageBox.Show(" Bundles Changed" + "Please restore the backup", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            Close();
+                            return;
+                        }
+                    }
+                    br.Save(br.Name);
+                    i++;
                 }
-            }));
-            t.Start();
-            sw.ShowDialog();
+                Dispatcher.Invoke(() => { CurrentBackground.Message.Text = string.Format(text, i); });
+                ic.Save("_.index.bin");
+            });
             MessageBox.Show("Success saved!" + Environment.NewLine + changed.Count.ToString() + " bundle files changed", "Done");
             changed.Clear();
         }
@@ -560,17 +652,17 @@ namespace VisualBundle
                     "Replace All Confirm",
                     MessageBoxButton.OKCancel, MessageBoxImage.Warning, MessageBoxResult.Cancel) == MessageBoxResult.OK)
                 {
-                    var Bundles2_path = Path.GetDirectoryName(fbd.FileName);
-                    var fs = Directory.GetFiles(Bundles2_path, "*", SearchOption.AllDirectories);
-                    var paths = ic.Hashes.Values;
                     var count = 0;
                     var size = 0;
-                    foreach (var f in fs)
+                    RunBackground(() =>
                     {
-                        var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
-                        if (paths.Contains(path))
+                        var Bundles2_path = Path.GetDirectoryName(fbd.FileName);
+                        var fs = Directory.GetFiles(Bundles2_path, "*", SearchOption.AllDirectories);
+                        foreach (var f in fs)
                         {
-                            var fr = ic.FindFiles[IndexContainer.FNV1a64Hash(path)];
+                            var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
+                            if (!ic.FindFiles.TryGetValue(IndexContainer.FNV1a64Hash(path), out FileRecord fr))
+                                continue;
                             var br = fr.bundleRecord;
                             if (loadedBundles.Contains(br))
                             {
@@ -578,9 +670,10 @@ namespace VisualBundle
                                 changed.Add(br);
                                 ++count;
                                 size += fr.Size;
+                                Dispatcher.Invoke(() => { CurrentBackground.Message.Text = "Replaced " + count.ToString() + " Files"; });
                             }
                         }
-                    }
+                    });
                     ButtonSave.IsEnabled = true;
                     MessageBox.Show("Imported " + count.ToString() + " Files." + Environment.NewLine
                         + "Total " + size.ToString() + " Bytes.", "Done");
@@ -590,6 +683,7 @@ namespace VisualBundle
 
         private void OnButtonFilterClick(object sender, RoutedEventArgs e)
         {
+            ButtonFilter.IsEnabled = false;
             filtered = TextBoxFilter.Text.ToLower();
             UpdateBundleList();
         }
@@ -598,6 +692,48 @@ namespace VisualBundle
         {
             if (!e.IsRepeat && e.Key == System.Windows.Input.Key.Enter)
                 OnButtonFilterClick(sender, null);
+        }
+
+        private void OnFilterTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (TextBoxFilter.Text == filtered)
+                ButtonFilter.IsEnabled = false;
+            else
+                ButtonFilter.IsEnabled = true;
+        }
+
+        public void RunBackground(Action action)
+        {
+            CurrentBackground = new BackgroundWindow();
+            var t = new System.Threading.Tasks.Task(new Action(() => {
+                try
+                {
+                    action();
+                    CurrentBackground.Closing -= CurrentBackground.OnClosing;
+                    Dispatcher.Invoke(CurrentBackground.Close);
+                }
+                catch (Exception ex)
+                {
+                    Dispatcher.Invoke(() => {
+                        var ew = new ErrorWindow();
+                        var tr = new Thread(new ParameterizedThreadStart(ew.ShowError))
+                        {
+                            CurrentUICulture = new System.Globalization.CultureInfo("en-US")
+                        };
+                        tr.Start(ex);
+                        if (ew.ShowDialog() != true)
+                        {
+                            CurrentBackground.Closing -= CurrentBackground.OnClosing;
+                            Dispatcher.Invoke(() => {
+                                CurrentBackground.Close();
+                                Close();
+                            });
+                        }
+                    });
+                }
+            }));
+            t.Start();
+            CurrentBackground.ShowDialog();
         }
 
         public OpenFileDialog OpenBundles2Dialog()
@@ -611,6 +747,11 @@ namespace VisualBundle
                 FileName = "(Go Into Bundles2 Folder And Click Open)"
             };
             return ofd;
+        }
+
+        private void OnShowAllCheckedChanged(object sender, RoutedEventArgs e)
+        {
+            UpdateBundleList();
         }
     }
 }
