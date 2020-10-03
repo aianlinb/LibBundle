@@ -42,13 +42,10 @@ namespace VisualBundle
         {
             get
             {
-                 return Properties.Resources.dir;
+                 return MainWindow.dir;
             }
         }
-        public FolderModel() : base()
-        {
-        }
-        public FolderModel(string name) : this()
+        public FolderModel(string name)
         {
             Name = name;
         }
@@ -59,13 +56,24 @@ namespace VisualBundle
         {
             get
             {
-                return Properties.Resources.file;
+                return MainWindow.file;
             }
         }
-        public FileModel()
+        public FileModel(string name)
         {
+            Name = name;
         }
-        public FileModel(string name) : this()
+    }
+    public class NotExistModel : ItemModel
+    {
+        override public ImageSource Icon
+        {
+            get
+            {
+                return MainWindow.notexist;
+            }
+        }
+        public NotExistModel(string name)
         {
             Name = name;
         }

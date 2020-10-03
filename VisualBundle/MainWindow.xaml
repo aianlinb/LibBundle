@@ -1,11 +1,11 @@
 ﻿<Window x:Class="VisualBundle.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="VisualBundle v1.2.1" Height="480" Width="800" Loaded="OnLoaded" Closing="OnWindowClosing">
+        Title="VisualBundle v1.3.0" Height="480" Width="800" Loaded="OnLoaded" Closing="OnWindowClosing">
     <Window.Resources>
         <HierarchicalDataTemplate x:Key="FileViewItemTemplate" DataType="x:Type VisualBundle:ItemModel" ItemsSource="{Binding ChildItems}">
             <StackPanel Orientation="Horizontal">
-                <Image Source="{Binding Icon}" Width="20" Height="20"/>
+                <Image Source="{Binding Icon}" Width="20" Height="20" Margin="0,0,5,0"/>
                 <TextBlock Text="{Binding Name}" FontSize="16"/>
             </StackPanel>
         </HierarchicalDataTemplate>
@@ -18,7 +18,7 @@
         <TextBox x:Name="offsetView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="305,6,0,0"/>
         <TextBox x:Name="sizeView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="100" Margin="540,6,0,0"/>
         <TextBox x:Name="noView" HorizontalAlignment="Left" Height="23" TextWrapping="Wrap" Text="0" VerticalAlignment="Top" Width="90" Margin="680,6,0,0"/>
-        <TreeView x:Name="View2" ItemTemplate="{StaticResource FileViewItemTemplate}" SelectedItemChanged="OnTreeView2SelectedChanged" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="250,35,235,0"/>
+        <TreeView x:Name="View2" ItemTemplate="{StaticResource FileViewItemTemplate}" SelectedItemChanged="OnTreeView2SelectedChanged" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Margin="250,35,240,0"/>
         <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="FileDataOffset:" VerticalAlignment="Top" Margin="0,60,130,0"/>
         <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="FileRecordOffset:" VerticalAlignment="Top" Margin="0,90,130,0"/>
         <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="FileSize:" VerticalAlignment="Top" Margin="0,120,130,0"/>
@@ -36,5 +36,6 @@
         <TextBlock HorizontalAlignment="Right" TextWrapping="Wrap" Text="Copyright © 2020 aianlinb." VerticalAlignment="Bottom" Margin="0,0,10,5"/>
         <TextBox x:Name="TextBoxFilter" HorizontalAlignment="Left" Height="25" TextWrapping="Wrap" VerticalAlignment="Top" Width="160" FontSize="16" Margin="5,5,0,0" KeyDown="OnFilterKeyDown" TextChanged="OnFilterTextChanged"/>
         <Button x:Name="ButtonFilter" Content="Filter" IsEnabled="False" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="170,5,0,0" Height="25" Click="OnButtonFilterClick" FontSize="16"/>
+        <CheckBox x:Name="ShowAll" Content="ShowUnloadedBundles" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,25,55" Checked="OnShowAllCheckedChanged" Unchecked="OnShowAllCheckedChanged"/>
     </Grid>
 </Window>
