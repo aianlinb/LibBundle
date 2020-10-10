@@ -40,29 +40,20 @@ namespace LibBundle.Records
 
         public void Save(string path)
         {
-            var data = Bundle.Read();
+            var odata = Bundle.Read();
             var dataToSave = new MemoryStream();
-            foreach (var f in Files)
+            foreach (var d in dataToAdd)
             {
-                if (dataToAdd.ContainsKey(f))
-                {
-                    f.Offset = (int)dataToSave.Position;
-                    dataToSave.Write(dataToAdd[f], 0, f.Size);
-                }
-                else
-                {
-                    var b = new byte[f.Size];
-                    data.Seek(f.Offset, SeekOrigin.Begin);
-                    data.Read(b, 0, f.Size);
-                    f.Offset = (int)dataToSave.Position;
-                    dataToSave.Write(b, 0, f.Size);
-                }
+                d.Key.Offset = (int)(odata.Length + dataToSave.Position);
+                dataToSave.Write(d.Value, 0, d.Key.Size);
             }
-            Bundle.dataToSave = dataToSave.ToArray();
+            dataToSave.Position = 0;
+            dataToSave.CopyTo(odata);
+            Bundle.dataToSave = odata.ToArray();
             UncompressedSize = Bundle.dataToSave.Length;
             Bundle.Save(path);
             dataToAdd = new Dictionary<FileRecord, byte[]>();
-            data.Close();
+            odata.Close();
             dataToSave.Close();
         }
     }
