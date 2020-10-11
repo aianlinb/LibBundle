@@ -464,12 +464,10 @@ namespace VisualBundle
                     "Import Confirm",
                     MessageBoxButton.OKCancel, MessageBoxImage.Question, MessageBoxResult.Cancel) == MessageBoxResult.OK)
             {
-                var fbd = OpenBundles2Dialog();
+                var fbd = new OpenFolderDialog();
                 if (fbd.ShowDialog() == true)
                 {
-                    var Bundles2_path = Path.GetDirectoryName(fbd.FileName);
-                    var fileNames = Directory.GetFiles(Bundles2_path, "*", SearchOption.AllDirectories);
-                    var checkedPaths = new List<string>(fileNames.Length);
+                    var fileNames = Directory.GetFiles(fbd.DirectoryPath, "*", SearchOption.AllDirectories);
                     int l = loadedBundles[0].UncompressedSize;
                     BundleRecord bundleToSave = loadedBundles[0];
                     RunBackground(() =>
@@ -477,13 +475,12 @@ namespace VisualBundle
                         Dispatcher.Invoke(() => { CurrentBackground.Message.Text = "Checking files . . ."; });
                         foreach (var f in fileNames)
                         {
-                            var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
+                            var path = f.Remove(0, fbd.DirectoryPath.Length + 1).Replace("\\", "/");
                             if (!paths.Contains(path))
                             {
                                 MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                                 return;
                             }
-                            checkedPaths.Add(path);
                         }
 
                         foreach (var b in loadedBundles)
@@ -494,11 +491,11 @@ namespace VisualBundle
                                 bundleToSave = b;
                             }
                         }
-                        string str = "Imported {0}/" + checkedPaths.Count.ToString() + " Files";
+                        string str = "Imported {0}/" + fileNames.Length.ToString() + " Files";
                         int count = 0;
-                        foreach (var f in checkedPaths)
+                        foreach (var f in fileNames)
                         {
-                            var path = f.Remove(0, Bundles2_path.Length + 1).Replace("\\", "/");
+                            var path = f.Remove(0, fbd.DirectoryPath.Length + 1).Replace("\\", "/");
                             var fr = ic.FindFiles[IndexContainer.FNV1a64Hash(path)];
                             fr.Write(File.ReadAllBytes(f));
                             fr.Move(bundleToSave);
@@ -509,7 +506,7 @@ namespace VisualBundle
                             changed.Add(bundleToSave);
                     });
                     ButtonSave.IsEnabled = true;
-                    MessageBox.Show("Imported " + checkedPaths.Count.ToString() + " files into " + bundleToSave.Name, "Done");
+                    MessageBox.Show("Imported " + fileNames.Length.ToString() + " files into " + bundleToSave.Name, "Done");
                 }
             }
         }
@@ -756,19 +753,6 @@ namespace VisualBundle
             }));
             t.Start();
             CurrentBackground.ShowDialog();
-        }
-
-        public OpenFileDialog OpenBundles2Dialog()
-        {
-            var ofd = new OpenFileDialog()
-            {
-                ValidateNames = false,
-                CheckFileExists = false,
-                CheckPathExists = true,
-                Title = "Go Into Bundles2 Folder And Click Open",
-                FileName = "(Go Into Bundles2 Folder And Click Open)"
-            };
-            return ofd;
         }
 
         private void OnShowAllCheckedChanged(object sender, RoutedEventArgs e)
