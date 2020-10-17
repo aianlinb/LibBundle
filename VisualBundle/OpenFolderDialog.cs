@@ -10,20 +10,12 @@ namespace VisualBundle
     #region FolderBrowserDialog Base
 
     /// <summary>
-    /// Vista 樣式的 FolderBrowserDialog
+    /// Vista style of FolderBrowserDialog
     /// </summary>
     public class OpenFolderDialog
     {
         #region Public Property
-        /// <summary>
-        /// 获取在 FolderBrowser 中选择的文件夹路径
-        /// </summary>
         public string DirectoryPath { get; set; }
-        /// <summary>
-        /// 向用户显示 FolderBrowser 的对话框
-        /// </summary>
-        /// <param name="owner">任何实现 System.Windows.Forms.IWin32Window（表示将拥有模式对话框的顶级窗口）的对象。</param>
-        /// <returns></returns>
         public bool? ShowDialog(Window owner = null)
         {
             ;

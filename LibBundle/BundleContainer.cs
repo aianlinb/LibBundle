@@ -9,7 +9,7 @@ namespace LibBundle
         public static extern int OodleLZ_Decompress(byte[] buffer, int bufferSize, byte[] result, long outputBufferSize, int a, int b, int c, IntPtr  d, long e, IntPtr f, IntPtr g, IntPtr h, long i, int ThreadModule);
         [System.Runtime.InteropServices.DllImport("oo2core_8_win64.dll")]
         public static extern int OodleLZ_Compress(ENCODE_TYPES format, byte[] buffer, long bufferSize, byte[] outputBuffer, COMPRESSTION_LEVEL level, IntPtr opts, long offs, long unused, IntPtr scratch, long scratch_size);
-        public enum ENCODE_TYPES : uint
+        public enum ENCODE_TYPES
         {
             LZH = 0,
             LZHLW = 1,
@@ -26,8 +26,7 @@ namespace LibBundle
             HYDRA = 12,
             LEVIATHAN = 13
         }
-
-        public enum COMPRESSTION_LEVEL : uint
+        public enum COMPRESSTION_LEVEL
         {
             None,
             SuperFast,
@@ -42,27 +41,27 @@ namespace LibBundle
         }
 
         public string path;
-        public long offset = 0;
+        public long? offset;
+
         public int uncompressed_size;
-        public int data_size;
-        public int head_size;
-        public ENCODE_TYPES encoder;
-        public int unknown;
-        public long size_decompressed;
-        public long size_compressed;
+        public int compressed_size;
+        public int head_size; // entry_count * 4 + 48
+        public ENCODE_TYPES encoder; // 13
+        public int unknown; // 1
+        public long size_decompressed; // uncompressed_size
+        public long size_compressed; // compressed_size
         public int entry_count;
-        public int chunk_size;
-        public int unknown3;
-        public int unknown4;
-        public int unknown5;
-        public int unknown6;
-        internal byte[] dataToSave;
+        public int chunk_size; // 256KB == 262144
+        public int unknown3; // 0
+        public int unknown4; // 0
+        public int unknown5; // 0
+        public int unknown6; // 0
 
         //For UnPacking
         public BundleContainer(string path)
         {
             this.path = path;
-            var br = new BinaryReader(File.OpenRead(path));
+            var br = new BinaryReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
             Initialize(br);
             br.Close();
         }
@@ -74,24 +73,19 @@ namespace LibBundle
         }
 
         //For Packing
-        public BundleContainer(byte[] data)
+        public BundleContainer()
         {
-            offset = 0;
-            size_decompressed = uncompressed_size = data.Length;
             encoder = ENCODE_TYPES.LEVIATHAN;
-            entry_count = (data.Length % 262144) == 0 ? data.Length / 262144 : (data.Length / 262144) + 1;
-            head_size = entry_count * 4 + 48;
             chunk_size = 262144;
             unknown = 1;
             unknown3 = unknown4 = unknown5 = unknown6 = 0;
-            dataToSave = data;
         }
         
         private void Initialize(BinaryReader br)
         {
             offset = br.BaseStream.Position;
             uncompressed_size = br.ReadInt32();
-            data_size = br.ReadInt32();
+            compressed_size = br.ReadInt32();
             head_size = br.ReadInt32();
             encoder = (ENCODE_TYPES)br.ReadInt32();
             unknown = br.ReadInt32();
@@ -106,49 +100,84 @@ namespace LibBundle
         }
 
         //UnPacking
-        public MemoryStream Read(BinaryReader br = null)
+        public virtual MemoryStream Read(string path = null)
         {
-            if (br == null)
-                if (path == null)
-                    throw new ArgumentException("BundleContainer implemented using a constructor with BinaryReader parameters must include the br parameter when calling Read()", "br");
-                else
-                    br = new BinaryReader(File.OpenRead(path));
+            if (path == null)
+                path = this.path;
+            if (path == null)
+                throw new ArgumentException("Path not found", "path");
+            var br = new BinaryReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+            var ms = Read(br);
+            br.Close();
+            return ms;
+        }
+        //UnPacking
+        public virtual MemoryStream Read(BinaryReader br)
+        {
+            var offset = this.offset ?? br.BaseStream.Position;
             br.BaseStream.Seek(offset + 60, SeekOrigin.Begin);
 
             var chunks = new int[entry_count];
             for (int i = 0; i < entry_count; i++)
-            {
                 chunks[i] = br.ReadInt32();
-            }
             
             var data = new MemoryStream(uncompressed_size);
-
             for (int i = 0; i < entry_count; i++)
             {
                 var b = br.ReadBytes(chunks[i]);
-                int size = (i + 1 == entry_count) ? uncompressed_size - (chunk_size * (entry_count - 1)) : chunk_size;
+                int size = (i + 1 == entry_count) ? uncompressed_size - (chunk_size * (entry_count - 1)) : chunk_size; // isLast ?
                 var toSave = new byte[size + 64];
                 OodleLZ_Decompress(b, b.Length, toSave, size, 0, 0, 0, IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, 0, 3);
                 data.Write(toSave, 0, size);
             }
-            br.Close();
             return data;
         }
 
         //Packing
-        public virtual void Save(string path)
+        public virtual void Save(byte[] data, string path = null)
         {
-            if (dataToSave == null)
-                throw new NotSupportedException("Save() only can be called when it's implemented using a constructor with \"byte[] data\" parameters");
-            this.path = path;
-            size_decompressed = uncompressed_size = dataToSave.Length;
+            if (path == null)
+                path = this.path;
+            if (path == null)
+                throw new ArgumentException("Path not found", "path");
+            var bw = new BinaryWriter(File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite));
+            offset = null;
+            Save(data, bw);
+            bw.Flush();
+            bw.Close();
+        }
+        //Packing
+        public virtual void Save(Stream ms, string path = null)
+        {
+            if (path == null)
+                path = this.path;
+            if (path == null)
+                throw new ArgumentException("Path not found", "path");
+            var bw = new BinaryWriter(File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite));
+            offset = null;
+            Save(ms, bw);
+            bw.Flush();
+            bw.Close();
+        }
+        //Packing
+        public virtual void Save(byte[] data, BinaryWriter bw)
+        {
+            var ms = new MemoryStream(data);
+            Save(ms, bw);
+            ms.Close();
+        }
+        //Packing
+        public virtual void Save(Stream ms, BinaryWriter bw)
+        {
+            var offset = this.offset ?? bw.BaseStream.Position;
+            uncompressed_size = (int)(size_decompressed = ms.Length);
             entry_count = uncompressed_size / chunk_size;
             if (uncompressed_size % chunk_size != 0) entry_count++;
             head_size = entry_count * 4 + 48;
-            var bw = new BinaryWriter(File.Create(path));
+
             bw.BaseStream.Seek(offset + 60 + (entry_count*4), SeekOrigin.Begin);
-            data_size = 0;
-            var ms = new MemoryStream(dataToSave);
+            ms.Position = 0;
+            compressed_size = 0;
             var chunks = new int[entry_count];
             for (int i = 0; i < entry_count - 1; i++)
             {
@@ -156,24 +185,24 @@ namespace LibBundle
                 ms.Read(b, 0, chunk_size);
                 var by = new byte[b.Length + 548];
                 var l = OodleLZ_Compress(ENCODE_TYPES.LEVIATHAN, b, b.Length, by, COMPRESSTION_LEVEL.Normal, IntPtr.Zero, 0, 0, IntPtr.Zero, 0);
-                data_size += chunks[i] = l;
+                compressed_size += chunks[i] = l;
                 bw.Write(by, 0, l);
             }
-            var b2 = new byte[dataToSave.Length - (entry_count - 1) * chunk_size];
+            var b2 = new byte[ms.Length - (entry_count - 1) * chunk_size];
             ms.Read(b2, 0, b2.Length);
             var by2 = new byte[b2.Length + 548];
             var l2 = OodleLZ_Compress(ENCODE_TYPES.LEVIATHAN, b2, b2.Length, by2, COMPRESSTION_LEVEL.Normal, IntPtr.Zero, 0, 0, IntPtr.Zero, 0);
-            data_size += chunks[entry_count - 1] = l2;
+            compressed_size += chunks[entry_count - 1] = l2;
             bw.Write(by2, 0, l2);
+            size_compressed = compressed_size;
 
             bw.BaseStream.Seek(offset + 60, SeekOrigin.Begin);
             for (int i = 0; i < entry_count; i++)
                 bw.Write(chunks[i]);
 
-            size_compressed = data_size;
             bw.BaseStream.Seek(offset, SeekOrigin.Begin);
             bw.Write(uncompressed_size);
-            bw.Write(data_size);
+            bw.Write(compressed_size);
             bw.Write(head_size);
             bw.Write((uint) encoder);
             bw.Write(unknown);
@@ -185,10 +214,6 @@ namespace LibBundle
             bw.Write(unknown4);
             bw.Write(unknown5);
             bw.Write(unknown6);
-
-            bw.Flush();
-            bw.Close();
-            ms.Close();
         }
     }
 }

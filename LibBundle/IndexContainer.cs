@@ -5,8 +5,9 @@ using System.Text;
 
 namespace LibBundle
 {
-    public class IndexContainer : BundleContainer
+    public class IndexContainer
     {
+        public BundleContainer BundleContainer;
         public BundleRecord[] Bundles;
         public FileRecord[] Files;
         public DirectoryRecord[] Directorys;
@@ -14,39 +15,46 @@ namespace LibBundle
         public Dictionary<ulong, string> Hashes;
         public byte[] directoryBundleData;
 
-        public IndexContainer(string path) : base(path)
+        private static BinaryReader tmp;
+        public IndexContainer(string path) : this(tmp = new BinaryReader(File.OpenRead(path)))
         {
-            var data = Read();
+            tmp.Close();
+            tmp = null;
+        }
+        public IndexContainer(BinaryReader br)
+        {
+            BundleContainer = new BundleContainer(br);
+            var data = BundleContainer.Read(br);
             data.Seek(0, SeekOrigin.Begin);
-            var br = new BinaryReader(data);
+            var databr = new BinaryReader(data);
 
-            int bundleCount = br.ReadInt32();
+            int bundleCount = databr.ReadInt32();
             Bundles = new BundleRecord[bundleCount];
-            for (int i=0; i< bundleCount; i++)
-                Bundles[i] = new BundleRecord(br) { bundleIndex = i };
-            
-            int fileCount = br.ReadInt32();
+            for (int i = 0; i < bundleCount; i++)
+                Bundles[i] = new BundleRecord(databr) { bundleIndex = i };
+
+            int fileCount = databr.ReadInt32();
             Files = new FileRecord[fileCount];
             for (int i = 0; i < fileCount; i++)
             {
-                var f = new FileRecord(br);
+                var f = new FileRecord(databr);
                 Files[i] = f;
                 FindFiles[f.Hash] = f;
                 f.bundleRecord = Bundles[f.BundleIndex];
                 Bundles[f.BundleIndex].Files.Add(f);
             }
 
-            int directoryCount = br.ReadInt32();
+            int directoryCount = databr.ReadInt32();
             Directorys = new DirectoryRecord[directoryCount];
             for (int i = 0; i < directoryCount; i++)
-                Directorys[i] = new DirectoryRecord(br);
+                Directorys[i] = new DirectoryRecord(databr);
 
-            var tmp = br.BaseStream.Position;
-            directoryBundleData = br.ReadBytes((int)(br.BaseStream.Length - tmp));
-            br.BaseStream.Seek(tmp, SeekOrigin.Begin);
+            var tmp = databr.BaseStream.Position;
+            directoryBundleData = databr.ReadBytes((int)(databr.BaseStream.Length - tmp));
+            databr.BaseStream.Seek(tmp, SeekOrigin.Begin);
 
-            var directoryBundle = new BundleContainer(br);
-            var br2 = new BinaryReader(directoryBundle.Read(br));
+            var directoryBundle = new BundleContainer(databr);
+            var br2 = new BinaryReader(directoryBundle.Read(databr));
             Hashes = new Dictionary<ulong, string>(Files.Length);
             foreach (var d in Directorys)
             {
@@ -85,6 +93,46 @@ namespace LibBundle
             br2.Close();
         }
 
+        public virtual void Save(string path)
+        {
+            BundleContainer.offset = null;
+            var bw = new BinaryWriter(File.OpenWrite(path));
+            Save(bw);
+            bw.Flush();
+            bw.Close();
+        }
+        public virtual void Save(BinaryWriter bw)
+        {
+            var tmp = new BinaryWriter(new MemoryStream());
+            tmp.Write(Bundles.Length);
+            foreach (var b in Bundles)
+            {
+                tmp.Write(b.nameLength);
+                tmp.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.nameLength);
+                tmp.Write(b.UncompressedSize);
+            }
+            tmp.Write(Files.Length);
+            foreach (var f in Files)
+            {
+                tmp.Write(f.Hash);
+                tmp.Write(f.BundleIndex);
+                tmp.Write(f.Offset);
+                tmp.Write(f.Size);
+            }
+            tmp.Write(Directorys.Length);
+            foreach (var d in Directorys)
+            {
+                tmp.Write(d.Hash);
+                tmp.Write(d.Offset);
+                tmp.Write(d.Size);
+                tmp.Write(d.RecursiveSize);
+            }
+            tmp.Write(directoryBundleData);
+            tmp.Flush();
+
+            BundleContainer.Save(tmp.BaseStream, bw);
+        }
+
         public static ulong FNV1a64Hash(string str)
         {
             if (str.EndsWith("/"))
@@ -101,40 +149,6 @@ namespace LibBundle
                 hash = (hash ^ by) * 0x100000001b3;
 
             return hash;
-        }
-
-        public override void Save(string path)
-        {
-            var bw = new BinaryWriter(new MemoryStream());
-            bw.Write(Bundles.Length);
-            foreach (var b in Bundles)
-            {
-                bw.Write(b.nameLength);
-                bw.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.nameLength);
-                bw.Write(b.UncompressedSize);
-            }
-            bw.Write(Files.Length);
-            foreach (var f in Files)
-            {
-                bw.Write(f.Hash);
-                bw.Write(f.BundleIndex);
-                bw.Write(f.Offset);
-                bw.Write(f.Size);
-            }
-            bw.Write(Directorys.Length);
-            foreach (var d in Directorys)
-            {
-                bw.Write(d.Hash);
-                bw.Write(d.Offset);
-                bw.Write(d.Size);
-                bw.Write(d.RecursiveSize);
-            }
-            bw.Write(directoryBundleData);
-            bw.Flush();
-
-            dataToSave = ((MemoryStream)bw.BaseStream).ToArray();
-            bw.Close();
-            base.Save(path);
         }
     }
 }
