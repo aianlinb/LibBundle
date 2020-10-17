@@ -12,8 +12,9 @@ namespace VisualBundle
         public void ShowError(object e)
         {
             var ex = e as System.Exception;
+            var error = ex.ToString();
             Dispatcher.Invoke(new System.Action(() => {
-                ErrorBox.Text = ex.ToString();
+                ErrorBox.Text = error;
                 ButtonCopy.IsEnabled = true;
                 ButtonResume.IsEnabled = true;
                 ButtonStop.IsEnabled = true;

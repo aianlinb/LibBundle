@@ -37,6 +37,7 @@ namespace VisualBundle
             var ew = new ErrorWindow();
             var t = new Thread(new ParameterizedThreadStart(ew.ShowError))
             {
+                CurrentCulture = new System.Globalization.CultureInfo("en-US"),
                 CurrentUICulture = new System.Globalization.CultureInfo("en-US")
             };
             t.Start(e.Exception);
@@ -44,8 +45,10 @@ namespace VisualBundle
             if (ew.ShowDialog() != true)
             {
                 if (CurrentBackground != null)
+                {
                     CurrentBackground.Closing -= CurrentBackground.OnClosing;
-                CurrentBackground.Close();
+                    CurrentBackground.Close();
+                } 
                 Close();
             }
         }
@@ -737,6 +740,7 @@ namespace VisualBundle
                         var ew = new ErrorWindow();
                         var tr = new Thread(new ParameterizedThreadStart(ew.ShowError))
                         {
+                            CurrentCulture = new System.Globalization.CultureInfo("en-US"),
                             CurrentUICulture = new System.Globalization.CultureInfo("en-US")
                         };
                         tr.Start(ex);
