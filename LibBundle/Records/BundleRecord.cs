@@ -40,13 +40,6 @@ namespace LibBundle.Records
 
         public void Save(string path)
         {
-            var bw = new BinaryWriter(File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite));
-            Save(bw);
-            bw.Flush();
-            bw.Close();
-        }
-        public void Save(BinaryWriter bw)
-        {
             var data = Bundle.Read();
             foreach (var d in FileToAdd)
             {
@@ -54,10 +47,23 @@ namespace LibBundle.Records
                 data.Write(d.Value, 0, d.Key.Size);
             }
             UncompressedSize = (int)data.Length;
-            data.Position = 0;
-            Bundle.Save(data, bw);
             FileToAdd = new Dictionary<FileRecord, byte[]>();
+            data.Position = 0;
+            Bundle.Save(data, path);
             data.Close();
+        }
+        public byte[] Save()
+        {
+            using var data = Bundle.Read();
+            foreach (var d in FileToAdd)
+            {
+                d.Key.Offset = (int)data.Position;
+                data.Write(d.Value, 0, d.Key.Size);
+            }
+            UncompressedSize = (int)data.Length;
+            FileToAdd = new Dictionary<FileRecord, byte[]>();
+            data.Position = 0;
+            return Bundle.Save(data);
         }
     }
 }

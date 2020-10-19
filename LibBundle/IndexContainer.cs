@@ -98,42 +98,66 @@ namespace LibBundle
 
         public virtual void Save(string path)
         {
-            BundleContainer.offset = null;
-            var bw = new BinaryWriter(File.OpenWrite(path));
-            Save(bw);
-            bw.Flush();
-            bw.Close();
-        }
-        public virtual void Save(BinaryWriter bw)
-        {
-            var tmp = new BinaryWriter(new MemoryStream());
-            tmp.Write(Bundles.Length);
+            var bw = new BinaryWriter(new MemoryStream());
+            bw.Write(Bundles.Length);
             foreach (var b in Bundles)
             {
-                tmp.Write(b.nameLength);
-                tmp.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.nameLength);
-                tmp.Write(b.UncompressedSize);
+                bw.Write(b.nameLength);
+                bw.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.nameLength);
+                bw.Write(b.UncompressedSize);
             }
-            tmp.Write(Files.Length);
+            bw.Write(Files.Length);
             foreach (var f in Files)
             {
-                tmp.Write(f.Hash);
-                tmp.Write(f.BundleIndex);
-                tmp.Write(f.Offset);
-                tmp.Write(f.Size);
+                bw.Write(f.Hash);
+                bw.Write(f.BundleIndex);
+                bw.Write(f.Offset);
+                bw.Write(f.Size);
             }
-            tmp.Write(Directorys.Length);
+            bw.Write(Directorys.Length);
             foreach (var d in Directorys)
             {
-                tmp.Write(d.Hash);
-                tmp.Write(d.Offset);
-                tmp.Write(d.Size);
-                tmp.Write(d.RecursiveSize);
+                bw.Write(d.Hash);
+                bw.Write(d.Offset);
+                bw.Write(d.Size);
+                bw.Write(d.RecursiveSize);
             }
-            tmp.Write(directoryBundleData);
-            tmp.Flush();
+            bw.Write(directoryBundleData);
+            bw.Flush();
 
-            BundleContainer.Save(tmp.BaseStream, bw);
+            BundleContainer.Save(bw.BaseStream, path);
+            bw.Close();
+        }
+        public virtual byte[] Save()
+        {
+            using var bw = new BinaryWriter(new MemoryStream());
+            bw.Write(Bundles.Length);
+            foreach (var b in Bundles)
+            {
+                bw.Write(b.nameLength);
+                bw.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.nameLength);
+                bw.Write(b.UncompressedSize);
+            }
+            bw.Write(Files.Length);
+            foreach (var f in Files)
+            {
+                bw.Write(f.Hash);
+                bw.Write(f.BundleIndex);
+                bw.Write(f.Offset);
+                bw.Write(f.Size);
+            }
+            bw.Write(Directorys.Length);
+            foreach (var d in Directorys)
+            {
+                bw.Write(d.Hash);
+                bw.Write(d.Offset);
+                bw.Write(d.Size);
+                bw.Write(d.RecursiveSize);
+            }
+            bw.Write(directoryBundleData);
+            bw.Flush();
+
+            return BundleContainer.Save(bw.BaseStream);
         }
 
         public static ulong FNV1a64Hash(string str)

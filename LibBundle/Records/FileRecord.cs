@@ -28,7 +28,18 @@ namespace LibBundle.Records
             if (!bundleRecord.FileToAdd.TryGetValue(this, out byte[] b))
             {
                 b = new byte[Size];
-                var data = stream == null ? bundleRecord.Bundle.Read() : stream;
+                var data = stream ?? bundleRecord.Bundle.Read();
+                data.Seek(Offset, SeekOrigin.Begin);
+                data.Read(b, 0, Size);
+            }
+            return b;
+        }
+        public byte[] Read(BinaryReader ggpkStream)
+        {
+            if (!bundleRecord.FileToAdd.TryGetValue(this, out byte[] b))
+            {
+                b = new byte[Size];
+                var data = bundleRecord.Bundle.Read(ggpkStream);
                 data.Seek(Offset, SeekOrigin.Begin);
                 data.Read(b, 0, Size);
             }
