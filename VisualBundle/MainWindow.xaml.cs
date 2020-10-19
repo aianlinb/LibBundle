@@ -4,7 +4,6 @@ using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Threading;
 using System.Windows;
@@ -21,9 +20,9 @@ namespace VisualBundle
         public List<BundleRecord> loadedBundles = new List<BundleRecord>();
         public BackgroundWindow CurrentBackground;
         public string filtered = "";
-        public static BitmapSource file;
-        public static BitmapSource dir;
-        public static BitmapSource notexist;
+        public static BitmapFrame file = BitmapFrame.Create(new MemoryStream((byte[])Properties.Resources.ResourceManager.GetObject("file")));
+        public static BitmapFrame dir = BitmapFrame.Create(new MemoryStream((byte[])Properties.Resources.ResourceManager.GetObject("dir")));
+        public static BitmapFrame notexist = BitmapFrame.Create(new MemoryStream((byte[])Properties.Resources.ResourceManager.GetObject("notexist")));
 
         public MainWindow()
         {
@@ -81,9 +80,6 @@ namespace VisualBundle
             }
             Environment.CurrentDirectory = Path.GetDirectoryName(indexPath);
             ic = new IndexContainer("_.index.bin");
-            file = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("file")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-            dir = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("dir")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-            notexist = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("notexist")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
             UpdateBundleList();
         }
 
