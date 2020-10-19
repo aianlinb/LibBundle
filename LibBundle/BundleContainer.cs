@@ -65,22 +65,11 @@ namespace LibBundle
             Initialize(br);
             br.Close();
         }
-
         //For UnPacking
         public BundleContainer(BinaryReader br)
         {
             Initialize(br);
         }
-
-        //For Packing
-        public BundleContainer()
-        {
-            encoder = ENCODE_TYPES.LEVIATHAN;
-            chunk_size = 262144;
-            unknown = 1;
-            unknown3 = unknown4 = unknown5 = unknown6 = 0;
-        }
-        
         private void Initialize(BinaryReader br)
         {
             offset = br.BaseStream.Position;
@@ -99,6 +88,15 @@ namespace LibBundle
             unknown6 = br.ReadInt32();
         }
 
+        //For Packing
+        public BundleContainer()
+        {
+            encoder = ENCODE_TYPES.LEVIATHAN;
+            chunk_size = 262144;
+            unknown = 1;
+            unknown3 = unknown4 = unknown5 = unknown6 = 0;
+        }
+
         //UnPacking
         public virtual MemoryStream Read(string path = null)
         {
@@ -106,6 +104,7 @@ namespace LibBundle
                 path = this.path;
             if (path == null)
                 throw new ArgumentException("Path not found", "path");
+            offset = null;
             var br = new BinaryReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
             var ms = Read(br);
             br.Close();
@@ -134,48 +133,16 @@ namespace LibBundle
         }
 
         //Packing
-        public virtual void Save(byte[] data, string path = null)
+        public virtual void Save(Stream ms, string path)
         {
-            if (path == null)
-                path = this.path;
-            if (path == null)
-                throw new ArgumentException("Path not found", "path");
             var bw = new BinaryWriter(File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite));
-            offset = null;
-            Save(data, bw);
-            bw.Flush();
-            bw.Close();
-        }
-        //Packing
-        public virtual void Save(Stream ms, string path = null)
-        {
-            if (path == null)
-                path = this.path;
-            if (path == null)
-                throw new ArgumentException("Path not found", "path");
-            var bw = new BinaryWriter(File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite));
-            offset = null;
-            Save(ms, bw);
-            bw.Flush();
-            bw.Close();
-        }
-        //Packing
-        public virtual void Save(byte[] data, BinaryWriter bw)
-        {
-            var ms = new MemoryStream(data);
-            Save(ms, bw);
-            ms.Close();
-        }
-        //Packing
-        public virtual void Save(Stream ms, BinaryWriter bw)
-        {
-            var offset = this.offset ?? bw.BaseStream.Position;
+
             uncompressed_size = (int)(size_decompressed = ms.Length);
             entry_count = uncompressed_size / chunk_size;
             if (uncompressed_size % chunk_size != 0) entry_count++;
             head_size = entry_count * 4 + 48;
 
-            bw.BaseStream.Seek(offset + 60 + (entry_count*4), SeekOrigin.Begin);
+            bw.BaseStream.Seek(60 + (entry_count * 4), SeekOrigin.Begin);
             ms.Position = 0;
             compressed_size = 0;
             var chunks = new int[entry_count];
@@ -196,15 +163,15 @@ namespace LibBundle
             bw.Write(by2, 0, l2);
             size_compressed = compressed_size;
 
-            bw.BaseStream.Seek(offset + 60, SeekOrigin.Begin);
+            bw.BaseStream.Seek(60, SeekOrigin.Begin);
             for (int i = 0; i < entry_count; i++)
                 bw.Write(chunks[i]);
 
-            bw.BaseStream.Seek(offset, SeekOrigin.Begin);
+            bw.BaseStream.Seek(0, SeekOrigin.Begin);
             bw.Write(uncompressed_size);
             bw.Write(compressed_size);
             bw.Write(head_size);
-            bw.Write((uint) encoder);
+            bw.Write((uint)encoder);
             bw.Write(unknown);
             bw.Write(size_decompressed);
             bw.Write(size_compressed);
@@ -214,6 +181,65 @@ namespace LibBundle
             bw.Write(unknown4);
             bw.Write(unknown5);
             bw.Write(unknown6);
+
+            bw.Flush();
+            bw.Close();
+        }
+        //Packing
+        public virtual byte[] Save(Stream ms)
+        {
+            var msToSave = new MemoryStream();
+            var bw = new BinaryWriter(msToSave);
+
+            uncompressed_size = (int)(size_decompressed = ms.Length);
+            entry_count = uncompressed_size / chunk_size;
+            if (uncompressed_size % chunk_size != 0) entry_count++;
+            head_size = entry_count * 4 + 48;
+
+            bw.BaseStream.Seek(60 + (entry_count * 4), SeekOrigin.Begin);
+            ms.Position = 0;
+            compressed_size = 0;
+            var chunks = new int[entry_count];
+            for (int i = 0; i < entry_count - 1; i++)
+            {
+                var b = new byte[chunk_size];
+                ms.Read(b, 0, chunk_size);
+                var by = new byte[b.Length + 548];
+                var l = OodleLZ_Compress(ENCODE_TYPES.LEVIATHAN, b, b.Length, by, COMPRESSTION_LEVEL.Normal, IntPtr.Zero, 0, 0, IntPtr.Zero, 0);
+                compressed_size += chunks[i] = l;
+                bw.Write(by, 0, l);
+            }
+            var b2 = new byte[ms.Length - (entry_count - 1) * chunk_size];
+            ms.Read(b2, 0, b2.Length);
+            var by2 = new byte[b2.Length + 548];
+            var l2 = OodleLZ_Compress(ENCODE_TYPES.LEVIATHAN, b2, b2.Length, by2, COMPRESSTION_LEVEL.Normal, IntPtr.Zero, 0, 0, IntPtr.Zero, 0);
+            compressed_size += chunks[entry_count - 1] = l2;
+            bw.Write(by2, 0, l2);
+            size_compressed = compressed_size;
+
+            bw.BaseStream.Seek(60, SeekOrigin.Begin);
+            for (int i = 0; i < entry_count; i++)
+                bw.Write(chunks[i]);
+
+            bw.BaseStream.Seek(0, SeekOrigin.Begin);
+            bw.Write(uncompressed_size);
+            bw.Write(compressed_size);
+            bw.Write(head_size);
+            bw.Write((uint)encoder);
+            bw.Write(unknown);
+            bw.Write(size_decompressed);
+            bw.Write(size_compressed);
+            bw.Write(entry_count);
+            bw.Write(chunk_size);
+            bw.Write(unknown3);
+            bw.Write(unknown4);
+            bw.Write(unknown5);
+            bw.Write(unknown6);
+
+            bw.Flush();
+            var result = msToSave.ToArray();
+            bw.Close();
+            return result;
         }
     }
 }
