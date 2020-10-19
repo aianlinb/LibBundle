@@ -8,27 +8,35 @@ namespace FileListGenerator
     {
         static void Main(string[] args)
         {
-            if (!File.Exists("_.index.bin"))
+            string path = args.Length > 0 && Path.GetFileName(args[0]) == "_.index.bin" ? args[0] : "_.index.bin";
+            if (!File.Exists(path))
             {
-                Console.WriteLine("File not found: _.index.bin");
+                Console.WriteLine("File not found: " + path);
                 Console.WriteLine("Click enter to exit . . .");
                 Console.ReadLine();
                 return;
             }
+
             Console.WriteLine("Loading . . .");
-            var gc = new IndexContainer("_.index.bin");
-            var fl = File.CreateText("FileList.yml");
-            foreach (var b in gc.Bundles)
+            var ic = new IndexContainer(path);
+            Console.WriteLine("Found:");
+            Console.WriteLine(ic.Bundles.Length.ToString() + " BundleRecords");
+            Console.WriteLine(ic.Files.Length.ToString() + " FileRecords");
+            Console.WriteLine(ic.Directorys.Length.ToString() + " DirectoryRecords");
+
+            Console.WriteLine(Environment.NewLine + "Generating FileList . . .");
+            var sw = File.CreateText("FileList.yml");
+            foreach (var b in ic.Bundles)
             {
-                fl.WriteLine(b.Name + ":");
+                sw.WriteLine(b.Name + ":");
                 foreach (var f in b.Files)
-                    if (gc.Hashes.ContainsKey(f.Hash))
-                        fl.WriteLine("- " + gc.Hashes[f.Hash]);
+                    sw.WriteLine("- " + f.path);
             }
-            fl.Flush();
-            fl.Close();
+            sw.Flush();
+            sw.Close();
             Console.WriteLine("Done!");
-            Console.WriteLine("Click enter to exit . . .");
+
+            Console.WriteLine(Environment.NewLine + "Click enter to exit . . .");
             Console.ReadLine();
         }
     }

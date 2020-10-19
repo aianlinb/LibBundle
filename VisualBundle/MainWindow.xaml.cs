@@ -24,7 +24,6 @@ namespace VisualBundle
         public static BitmapSource file;
         public static BitmapSource dir;
         public static BitmapSource notexist;
-        public ICollection<string> paths;
 
         public MainWindow()
         {
@@ -82,7 +81,6 @@ namespace VisualBundle
             }
             Environment.CurrentDirectory = Path.GetDirectoryName(indexPath);
             ic = new IndexContainer("_.index.bin");
-            paths = ic.Hashes.Values;
             file = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("file")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
             dir = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("dir")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
             notexist = Imaging.CreateBitmapSourceFromHIcon(((Icon)Properties.Resources.ResourceManager.GetObject("notexist")).Handle, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
@@ -169,7 +167,7 @@ namespace VisualBundle
                 noView.Text = br.bundleIndex.ToString();
                 var root = new FolderModel("Bundles2");
                 foreach (var f in br.Files)
-                    BuildTree(root, ic.Hashes[f.Hash], f);
+                    BuildTree(root, f.path, f);
                 View2.Items.Clear();
                 View2.Items.Add(root);
                 View2.ItemContainerGenerator.ContainerFromIndex(0)?.SetValue(TreeViewItem.IsExpandedProperty, true);
@@ -215,12 +213,12 @@ namespace VisualBundle
 
         public void BuildTree(ItemModel root, string path, object file)
         {
-            if (file is BundleRecord)
+            if (file is BundleRecord record)
             {
-                foreach (var f in ((BundleRecord)file).Files)
-                    if (ic.Hashes[f.Hash].ToLower().Contains(filtered))
+                foreach (var f in record.Files)
+                    if (f.path.ToLower().Contains(filtered))
                     {
-                        loadedBundles.Add((BundleRecord)file);
+                        loadedBundles.Add(record);
                         goto S;
                     }
                 return;
@@ -249,7 +247,7 @@ namespace VisualBundle
         public void BuildNotExistTree(ItemModel root, string path, object file)
         {
             foreach (var f in ((BundleRecord)file).Files)
-                if (ic.Hashes[f.Hash].ToLower().Contains(filtered))
+                if (f.path.ToLower().Contains(filtered))
                     goto S;
             return;
           S:
@@ -335,7 +333,7 @@ namespace VisualBundle
                 {
                     var sfd = new SaveFileDialog
                     {
-                        FileName = Path.GetFileName(ic.Hashes[f.Hash]),
+                        FileName = Path.GetFileName(f.path),
                         Filter = "All Files|*.*"
                     };
                     if (sfd.ShowDialog() == true)
@@ -400,7 +398,7 @@ namespace VisualBundle
                 {
                     var root = new FolderModel("Bundles2");
                     foreach (var f in br.Files)
-                        BuildTree(root, ic.Hashes.ContainsKey(f.Hash) ? ic.Hashes[f.Hash] : null, f);
+                        BuildTree(root, f.path, f);
                     var s = br.Bundle.Read();
                     count += ExportDir(root.ChildItems, path, s);
                     s.Close();
@@ -422,7 +420,7 @@ namespace VisualBundle
                     MessageBox.Show("This bundle wasn't loaded!", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
-                var ofd = new OpenFileDialog { FileName = Path.GetFileName(ic.Hashes[f.Hash]) };
+                var ofd = new OpenFileDialog { FileName = Path.GetFileName(f.path) };
                 if (ofd.ShowDialog() == true)
                 {
                     f.Write(File.ReadAllBytes(ofd.FileName));
@@ -479,7 +477,7 @@ namespace VisualBundle
                         foreach (var f in fileNames)
                         {
                             var path = f.Remove(0, fbd.DirectoryPath.Length + 1).Replace("\\", "/");
-                            if (!paths.Contains(path))
+                            if (!ic.Paths.Contains(path))
                             {
                                 MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                                 return;
@@ -600,7 +598,7 @@ namespace VisualBundle
             var f = tvi.Record as FileRecord;
             if (f != null) //Selected File
             {
-                var path = Path.GetTempPath() + Path.GetFileName(ic.Hashes[f.Hash]);
+                var path = Path.GetTempPath() + Path.GetFileName(f.path);
                 File.WriteAllBytes(path, f.Read());
                 try
                 {
@@ -801,7 +799,7 @@ namespace VisualBundle
                                 if (i >= 0 && i + 9 < p.Length)
                                 {
                                     var path = p.Substring(i + 9).Replace("\\", "/");
-                                    if (!paths.Contains(path))
+                                    if (!ic.Paths.Contains(path))
                                     {
                                         MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                                         return;
@@ -815,7 +813,7 @@ namespace VisualBundle
                             if (i >= 0 && i + 9 < f.Length)
                             {
                                 var path = f.Substring(i + 9).Replace("\\", "/");
-                                if (!paths.Contains(path))
+                                if (!ic.Paths.Contains(path))
                                 {
                                     MessageBox.Show("The index didn't define the file:" + Environment.NewLine + path, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                                     return;
