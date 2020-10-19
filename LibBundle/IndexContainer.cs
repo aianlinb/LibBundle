@@ -12,7 +12,7 @@ namespace LibBundle
         public FileRecord[] Files;
         public DirectoryRecord[] Directorys;
         public Dictionary<ulong, FileRecord> FindFiles = new Dictionary<ulong, FileRecord>();
-        public Dictionary<ulong, string> Hashes;
+        public HashSet<string> Paths = new HashSet<string>();
         public byte[] directoryBundleData;
 
         private static BinaryReader tmp;
@@ -55,7 +55,7 @@ namespace LibBundle
 
             var directoryBundle = new BundleContainer(databr);
             var br2 = new BinaryReader(directoryBundle.Read(databr));
-            Hashes = new Dictionary<ulong, string>(Files.Length);
+            // Array.Sort(Directorys, new Comparison<DirectoryRecord>((dr1, dr2) => { return dr1.Offset > dr2.Offset ? 1 : -1; }));
             foreach (var d in Directorys)
             {
                 var temp = new List<string>();
@@ -84,8 +84,11 @@ namespace LibBundle
                             temp.Add(str);
                         else
                         {
-                            d.paths.Add(str);
-                            Hashes[FNV1a64Hash(str)] = str;
+                            Paths.Add(str);
+                            var f = FindFiles[FNV1a64Hash(str)];
+                            f.path = str;
+                            d.children.Add(f);
+                            f.parent = d;
                         }
                     }
                 }

@@ -11,7 +11,7 @@ namespace LibBundle.Records
         public string Name;
         public int UncompressedSize;
         public List<FileRecord> Files;
-        internal Dictionary<FileRecord, byte[]> dataToAdd = new Dictionary<FileRecord, byte[]>();
+        internal Dictionary<FileRecord, byte[]> FileToAdd = new Dictionary<FileRecord, byte[]>();
         private BundleContainer _bundle;
 
         public BundleContainer Bundle
@@ -48,7 +48,7 @@ namespace LibBundle.Records
         public void Save(BinaryWriter bw)
         {
             var data = Bundle.Read();
-            foreach (var d in dataToAdd)
+            foreach (var d in FileToAdd)
             {
                 d.Key.Offset = (int)data.Position;
                 data.Write(d.Value, 0, d.Key.Size);
@@ -56,7 +56,7 @@ namespace LibBundle.Records
             UncompressedSize = (int)data.Length;
             data.Position = 0;
             Bundle.Save(data, bw);
-            dataToAdd = new Dictionary<FileRecord, byte[]>();
+            FileToAdd = new Dictionary<FileRecord, byte[]>();
             data.Close();
         }
     }

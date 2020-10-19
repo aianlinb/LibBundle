@@ -30,6 +30,7 @@ namespace BundleExporter
                 return;
             }
 
+            Console.WriteLine("Loading . . .");
             var ic = new LibBundle.IndexContainer("_.index.bin");
             Console.WriteLine("Found:");
             Console.WriteLine(ic.Bundles.Length.ToString() + " BundleRecords");
@@ -56,12 +57,11 @@ namespace BundleExporter
                     Console.Write(str);
                     try
                     {
-                        var path = ic.Hashes[f.Hash];
-                        Directory.CreateDirectory(Path.GetDirectoryName(path));
+                        Directory.CreateDirectory(Path.GetDirectoryName(f.path));
                         var by = new byte[f.Size];
                         data.Position = f.Offset;
                         data.Read(by, 0, f.Size);
-                        File.WriteAllBytes(path, by);
+                        File.WriteAllBytes(f.path, by);
                     }
                     catch (Exception e)
                     {

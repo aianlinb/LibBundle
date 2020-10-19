@@ -5,11 +5,14 @@ namespace LibBundle.Records
     public class FileRecord
     {
         public long indexOffset;
+        public BundleRecord bundleRecord;
+        public DirectoryRecord parent;
+        public string path;
+
         public ulong Hash;
         public int BundleIndex;
         public int Offset;
         public int Size;
-        public BundleRecord bundleRecord;
 
         public FileRecord(BinaryReader br)
         {
@@ -22,7 +25,7 @@ namespace LibBundle.Records
 
         public byte[] Read(Stream stream = null)
         {
-            if (!bundleRecord.dataToAdd.TryGetValue(this, out byte[] b))
+            if (!bundleRecord.FileToAdd.TryGetValue(this, out byte[] b))
             {
                 b = new byte[Size];
                 var data = stream == null ? bundleRecord.Bundle.Read() : stream;
@@ -34,13 +37,13 @@ namespace LibBundle.Records
 
         public void Move(BundleRecord target)
         {
-            if (bundleRecord.dataToAdd.TryGetValue(this, out byte[] data))
-                bundleRecord.dataToAdd.Remove(this);
+            if (bundleRecord.FileToAdd.TryGetValue(this, out byte[] data))
+                bundleRecord.FileToAdd.Remove(this);
             else
                 data = Read();
             bundleRecord.Files.Remove(this);
             target.Files.Add(this);
-            target.dataToAdd[this] = data;
+            target.FileToAdd[this] = data;
             bundleRecord = target;
             BundleIndex = target.bundleIndex;
         }
@@ -48,7 +51,7 @@ namespace LibBundle.Records
         public void Write(byte[] data)
         {
             Size = data.Length;
-            bundleRecord.dataToAdd[this] = data;
+            bundleRecord.FileToAdd[this] = data;
         }
     }
 }
