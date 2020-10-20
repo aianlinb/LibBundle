@@ -454,8 +454,9 @@ namespace VisualBundle
 #endif
         private void OnButtonAddClick(object sender, RoutedEventArgs e)
         {
+            BundleRecord bundleToSave = (BundleRecord)(((ItemModel)View1.SelectedItem)?.Record);
             if (MessageBox.Show(
-                    "This will import all files to the smallest bundle of all loaded bundles (doesn't contain which were filtered)." + Environment.NewLine
+                    (bundleToSave == null ? "This will import all files to the smallest of all loaded bundles (doesn't contain which were filtered)." : "This will import all files to \"" + bundleToSave.Name + "\"") + Environment.NewLine
                     + "All files to be imported must be defined by the _.index.bin." + Environment.NewLine
                     + "Are you sure you want to do this?",
                     "Import Confirm",
@@ -465,8 +466,6 @@ namespace VisualBundle
                 if (fbd.ShowDialog() == true)
                 {
                     var fileNames = Directory.GetFiles(fbd.DirectoryPath, "*", SearchOption.AllDirectories);
-                    int l = loadedBundles[0].UncompressedSize;
-                    BundleRecord bundleToSave = loadedBundles[0];
                     RunBackground(() =>
                     {
                         Dispatcher.Invoke(() => { CurrentBackground.Message.Text = "Checking files . . ."; });
@@ -480,14 +479,20 @@ namespace VisualBundle
                             }
                         }
 
-                        foreach (var b in loadedBundles)
+                        if (bundleToSave == null)
                         {
-                            if (b.UncompressedSize < l)
+                            bundleToSave = loadedBundles[0];
+                            int l = loadedBundles[0].UncompressedSize;
+                            foreach (var b in loadedBundles)
                             {
-                                l = b.UncompressedSize;
-                                bundleToSave = b;
+                                if (b.UncompressedSize < l)
+                                {
+                                    l = b.UncompressedSize;
+                                    bundleToSave = b;
+                                }
                             }
                         }
+
                         string str = "Imported {0}/" + fileNames.Length.ToString() + " Files";
                         int count = 0;
                         foreach (var f in fileNames)
