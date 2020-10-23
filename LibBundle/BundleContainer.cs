@@ -41,7 +41,7 @@ namespace LibBundle
         }
 
         public string path;
-        public long? offset;
+        public long offset;
 
         public int uncompressed_size;
         public int compressed_size;
@@ -91,6 +91,7 @@ namespace LibBundle
         //For Packing
         public BundleContainer()
         {
+            offset = 0;
             encoder = ENCODE_TYPES.LEVIATHAN;
             chunk_size = 262144;
             unknown = 1;
@@ -102,9 +103,7 @@ namespace LibBundle
         {
             if (path == null)
                 path = this.path;
-            if (path == null)
-                throw new ArgumentException("Path not found", "path");
-            offset = null;
+            offset = 0;
             var br = new BinaryReader(File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
             var ms = Read(br);
             br.Close();
@@ -113,7 +112,6 @@ namespace LibBundle
         //UnPacking
         public virtual MemoryStream Read(BinaryReader br)
         {
-            var offset = this.offset ?? br.BaseStream.Position;
             br.BaseStream.Seek(offset + 60, SeekOrigin.Begin);
 
             var chunks = new int[entry_count];
