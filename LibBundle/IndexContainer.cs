@@ -1,6 +1,7 @@
 ﻿using LibBundle.Records;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace LibBundle
@@ -158,6 +159,21 @@ namespace LibBundle
             bw.Flush();
 
             return BundleContainer.Save(bw.BaseStream);
+        }
+
+        public BundleRecord GetSmallestBundle(IList<BundleRecord> Bundles = null)
+        {
+            if (Bundles == null)
+                Bundles = this.Bundles;
+            var result = Bundles.ElementAt(0);
+            int l = Bundles[0].UncompressedSize;
+            foreach (var b in Bundles)
+                if (b.UncompressedSize < l)
+                {
+                    l = b.UncompressedSize;
+                    result = b;
+                }
+            return result;
         }
 
         public static ulong FNV1a64Hash(string str)

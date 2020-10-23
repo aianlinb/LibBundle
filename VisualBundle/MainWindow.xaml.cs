@@ -480,18 +480,7 @@ namespace VisualBundle
                         }
 
                         if (bundleToSave == null)
-                        {
-                            bundleToSave = loadedBundles[0];
-                            int l = loadedBundles[0].UncompressedSize;
-                            foreach (var b in loadedBundles)
-                            {
-                                if (b.UncompressedSize < l)
-                                {
-                                    l = b.UncompressedSize;
-                                    bundleToSave = b;
-                                }
-                            }
-                        }
+                            bundleToSave = ic.GetSmallestBundle(loadedBundles);
 
                         string str = "Imported {0}/" + fileNames.Length.ToString() + " Files";
                         int count = 0;

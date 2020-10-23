@@ -18,8 +18,7 @@ namespace LibBundle.Records
         {
             get
             {
-                if (_bundle == null)
-                    Read();
+                Read();
                 return _bundle;
             }
         }
@@ -33,9 +32,13 @@ namespace LibBundle.Records
             Files = new List<FileRecord>();
         }
 
-        public void Read()
-        {
-            _bundle = new BundleContainer(Name);
+        public void Read(BinaryReader br = null)
+        {   
+            if (_bundle == null)
+                if (br == null)
+                    _bundle = new BundleContainer(Name);
+                else
+                    _bundle = new BundleContainer(br);
         }
 
         public void Save(string path)
