@@ -32,10 +32,15 @@ namespace LibBundle.Records
             Files = new List<FileRecord>();
         }
 
-        public void Read(BinaryReader br = null)
+        public void Read(BinaryReader br = null, long? Offset = null)
         {   
             if (_bundle == null)
-                if (br == null)
+                if (Offset.HasValue)
+                {
+                    br.BaseStream.Seek(Offset.Value, SeekOrigin.Begin);
+                    _bundle = new BundleContainer(br);
+                }
+                else if (br == null)
                     _bundle = new BundleContainer(Name);
                 else
                     _bundle = new BundleContainer(br);
@@ -55,9 +60,13 @@ namespace LibBundle.Records
             Bundle.Save(data, path);
             data.Close();
         }
-        public byte[] Save()
+        public byte[] Save(BinaryReader br = null)
         {
-            using var data = Bundle.Read();
+            MemoryStream data;
+            if (br == null)
+                data = Bundle.Read();
+            else
+                data = Bundle.Read(br);
             foreach (var d in FileToAdd)
             {
                 d.Key.Offset = (int)data.Position;
@@ -66,7 +75,9 @@ namespace LibBundle.Records
             UncompressedSize = (int)data.Length;
             FileToAdd = new Dictionary<FileRecord, byte[]>();
             data.Position = 0;
-            return Bundle.Save(data);
+            var result = Bundle.Save(data);
+            data.Close();
+            return result;
         }
     }
 }
