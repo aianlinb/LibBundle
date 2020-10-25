@@ -1,7 +1,7 @@
 ﻿<Window x:Class="VisualBundle.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="VisualBundle v2.2.0" Height="480" Width="850" Loaded="OnLoaded" Closing="OnWindowClosing" DragEnter="OnDragEnter" Drop="OnDragDrop" AllowDrop="True">
+        Title="VisualBundle v2.2.0.2" Height="480" Width="850" Loaded="OnLoaded" Closing="OnWindowClosing" DragEnter="OnDragEnter" Drop="OnDragDrop" AllowDrop="True">
     <Window.Resources>
         <HierarchicalDataTemplate x:Key="FileViewItemTemplate" DataType="x:Type VisualBundle:ItemModel" ItemsSource="{Binding ChildItems}">
             <StackPanel Orientation="Horizontal">
