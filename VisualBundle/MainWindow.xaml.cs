@@ -158,7 +158,7 @@ namespace VisualBundle
             }
             else //Selected Bundle File
             {
-                offsetView.Text = br.indexOffset.ToString();
+                offsetView.Text = br.IndexOffset.ToString();
                 sizeView.Text = br.UncompressedSize.ToString();
                 noView.Text = br.bundleIndex.ToString();
                 var root = new FolderModel("Bundles2");
