@@ -41,8 +41,10 @@ namespace LibBundle
                 var f = new FileRecord(databr);
                 Files[i] = f;
                 FindFiles[f.Hash] = f;
-                f.bundleRecord = Bundles[f.BundleIndex];
-                Bundles[f.BundleIndex].Files.Add(f);
+                var b = Bundles[f.BundleIndex];
+                f.bundleRecord = b;
+                b.Files.Add(f);
+                if (f.Offset >= b.validSize) b.validSize = f.Offset + f.Size;
             }
 
             int directoryCount = databr.ReadInt32();
@@ -103,8 +105,8 @@ namespace LibBundle
             bw.Write(Bundles.Length);
             foreach (var b in Bundles)
             {
-                bw.Write(b.nameLength);
-                bw.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.nameLength);
+                bw.Write(b.NameLength);
+                bw.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.NameLength);
                 bw.Write(b.UncompressedSize);
             }
             bw.Write(Files.Length);
@@ -135,8 +137,8 @@ namespace LibBundle
             bw.Write(Bundles.Length);
             foreach (var b in Bundles)
             {
-                bw.Write(b.nameLength);
-                bw.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.nameLength);
+                bw.Write(b.NameLength);
+                bw.Write(Encoding.UTF8.GetBytes(b.Name), 0, b.NameLength);
                 bw.Write(b.UncompressedSize);
             }
             bw.Write(Files.Length);
@@ -178,11 +180,8 @@ namespace LibBundle
 
         public static ulong FNV1a64Hash(string str)
         {
-            if (str.EndsWith("/"))
-            {
-                str.TrimEnd(new char[] { '/' });
-                str += "++";
-            }
+            if (str.EndsWith('/'))
+                str = str.TrimEnd(new char[] { '/' }) + "++";
             else
                 str = str.ToLower() + "++";
 
