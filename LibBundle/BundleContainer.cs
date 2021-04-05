@@ -67,7 +67,7 @@ namespace LibBundle {
         public BundleContainer(BinaryReader br) {
             Initialize(br);
         }
-        private void Initialize(BinaryReader br) {
+        protected virtual void Initialize(BinaryReader br) {
             offset = br.BaseStream.Position;
             uncompressed_size = br.ReadInt32();
             compressed_size = br.ReadInt32();
@@ -122,9 +122,9 @@ namespace LibBundle {
             return data;
         }
 
-        public virtual byte[] AppendAndSave(Stream newData, string path = null) {
+        public virtual byte[] AppendAndSave(Stream newData, string originalPath = null) {
             offset = 0;
-            return AppendAndSave(newData, File.Open(path ?? this.path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
+            return AppendAndSave(newData, File.Open(originalPath ?? path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
         }
 
         public virtual byte[] AppendAndSave(Stream newData, Stream originalData) {
@@ -203,8 +203,8 @@ namespace LibBundle {
         }
 
         // Packing
-        public virtual void Save(Stream newData, string path) {
-            var bw = new BinaryWriter(File.OpenWrite(path ?? this.path));
+        public virtual void Save(Stream newData, string savePath) {
+            var bw = new BinaryWriter(File.OpenWrite(savePath ?? path));
 
             uncompressed_size = (int)(size_decompressed = newData.Length);
             entry_count = uncompressed_size / chunk_size;
