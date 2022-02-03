@@ -7,21 +7,23 @@ namespace LibBundle.Records
 {
     public class BundleRecord
     {
-        public long IndexOffset;
         public int NameLength;
         public string Name;
         public int UncompressedSize;
 
         public int bundleIndex;
         public int validSize;
-        public readonly List<FileRecord> Files = new List<FileRecord>();
-        internal readonly Dictionary<FileRecord, byte[]> FileToAdd = new Dictionary<FileRecord, byte[]>();
+        public readonly List<FileRecord> Files = new();
+        internal readonly Dictionary<FileRecord, byte[]> FileToAdd = new();
         protected BundleContainer _bundle;
+        private bool bundleNull;
 
         public BundleContainer Bundle
         {
             get
             {
+                if (bundleNull)
+                    return null;
                 Read();
                 return _bundle;
             }
@@ -29,28 +31,27 @@ namespace LibBundle.Records
 
         public BundleRecord(BinaryReader br)
         {
-            IndexOffset = br.BaseStream.Position;
             NameLength = br.ReadInt32();
             Name = Encoding.UTF8.GetString(br.ReadBytes(NameLength)) + ".bundle.bin";
             UncompressedSize = br.ReadInt32();
         }
 
-        public virtual void Read(BinaryReader br = null, long? Offset = null)
-        {
+        public virtual void Read(BinaryReader br = null, long? Offset = null) {
             if (_bundle != null) return;
-            if (Offset.HasValue)
-            {
+            if (Offset.HasValue) {
                 br.BaseStream.Seek(Offset.Value, SeekOrigin.Begin);
                 _bundle = new BundleContainer(br);
-            }
-            else if (br == null)
-            {
+            } else if (br == null)
                 _bundle = new BundleContainer(Name);
-            }
+
+            // This will result in reading from the wrong place when bundle.bin is not found
+            /* 
             else
-            {
                 _bundle = new BundleContainer(br);
-            }
+            */
+
+            else
+                bundleNull = true;
         }
 
         public virtual void Save(string newPath = null, string originalPath = null)
@@ -64,7 +65,7 @@ namespace LibBundle.Records
                 d.Key.Offset = (int)data.Position + Bundle.uncompressed_size;
                 data.Write(d.Value, 0, d.Key.Size);
             }
-            UncompressedSize = (int)data.Length + Bundle.uncompressed_size;
+            UncompressedSize = validSize = (int)data.Length + Bundle.uncompressed_size;
             FileToAdd.Clear();
                 if (newPath != null)
                     File.WriteAllBytes(newPath, Bundle.AppendAndSave(data, originalPath));
@@ -95,7 +96,7 @@ namespace LibBundle.Records
             }
             else
             {
-                UncompressedSize = (int)data.Length + Bundle.uncompressed_size;
+                UncompressedSize = validSize =(int)data.Length + Bundle.uncompressed_size;
                 result = Bundle.AppendAndSave(data, br?.BaseStream ?? Bundle.Read());
             }
             FileToAdd.Clear();
@@ -113,7 +114,7 @@ namespace LibBundle.Records
                 d.Key.Offset = (int)data.Position;
                 data.Write(d.Value, 0, d.Key.Size);
             }
-            UncompressedSize = (int)data.Length;
+            UncompressedSize = validSize = (int)data.Length;
             FileToAdd.Clear();
             Bundle.Save(data, newPath ?? originalPath);
         }

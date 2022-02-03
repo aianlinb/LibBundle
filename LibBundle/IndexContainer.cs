@@ -1,7 +1,6 @@
 ﻿using LibBundle.Records;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace LibBundle
@@ -12,8 +11,8 @@ namespace LibBundle
         public readonly BundleRecord[] Bundles;
         public readonly FileRecord[] Files;
         public readonly DirectoryRecord[] Directorys;
-        public readonly Dictionary<ulong, FileRecord> FindFiles = new Dictionary<ulong, FileRecord>();
-        public readonly HashSet<string> Paths = new HashSet<string>();
+        public readonly Dictionary<ulong, FileRecord> FindFiles = new();
+        public readonly HashSet<string> Paths = new();
         public readonly byte[] directoryBundleData;
 
         protected static BinaryReader tmp;
@@ -169,7 +168,9 @@ namespace LibBundle
         public virtual BundleRecord GetSmallestBundle(IList<BundleRecord> Bundles = null)
         {
             Bundles ??= this.Bundles;
-            var result = Bundles.ElementAt(0);
+            if (Bundles.Count == 0)
+                return null;
+            var result = Bundles[0];
             var l = Bundles[0].UncompressedSize;
             foreach (var b in Bundles)
                 if (b.UncompressedSize < l)
@@ -191,7 +192,7 @@ namespace LibBundle
             var hash = 0xCBF29CE484222325UL;
             foreach (var by in bs)
                 hash = (hash ^ by) * 0x100000001B3UL;
-            // Equal to: bs.Aggregate(0xCBF29CE484222325UL, (current, by) => (current ^ by) * 0x100000001B3);
+            // Equals to: bs.Aggregate(0xCBF29CE484222325UL, (current, by) => (current ^ by) * 0x100000001B3);
             return hash;
         }
     }

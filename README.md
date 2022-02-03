@@ -1,3 +1,5 @@
+# This repository is deprecated
+See https://github.com/aianlinb/LibGGPK2
 # LibBundle
 Library for handling *.bundle.bin in GGPK of game PathOfExile after version 3.11.2
 # VisualBundle

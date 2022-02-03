@@ -26,8 +26,8 @@ namespace VisualBundle
 
         public MainWindow()
         {
-            InitializeComponent();
             Application.Current.DispatcherUnhandledException += OnUnhandledException;
+            InitializeComponent();
         }
 
         public void OnUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
@@ -158,7 +158,7 @@ namespace VisualBundle
             }
             else //Selected Bundle File
             {
-                offsetView.Text = br.IndexOffset.ToString();
+                offsetView.Text = "";
                 sizeView.Text = br.UncompressedSize.ToString();
                 noView.Text = br.bundleIndex.ToString();
                 var root = new FolderModel("Bundles2");
@@ -199,7 +199,7 @@ namespace VisualBundle
             else //Selected File
             {
                 BOffsetView.Text = fr.Offset.ToString();
-                IOffsetView.Text = fr.indexOffset.ToString();
+                IOffsetView.Text = "";
                 fSizeView.Text = fr.Size.ToString();
                 ButtonExport.IsEnabled = true;
                 ButtonReplace.IsEnabled = true;
